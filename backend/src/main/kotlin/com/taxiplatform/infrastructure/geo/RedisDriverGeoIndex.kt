@@ -7,8 +7,8 @@ import org.springframework.data.geo.Distance
 import org.springframework.data.geo.Metrics
 import org.springframework.data.geo.Point
 import org.springframework.data.redis.connection.RedisGeoCommands.GeoSearchCommandArgs
-import org.springframework.data.redis.core.GeoReference
 import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.data.redis.domain.geo.GeoReference
 import org.springframework.stereotype.Component
 import java.util.UUID
 
