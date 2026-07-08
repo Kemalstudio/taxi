@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: taxi
+      POSTGRES_USER: taxi
+      POSTGRES_PASSWORD: taxi
+    ports:
+      - "5432:5432"
+    volumes:
+      - taxi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taxi -d taxi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+
+    build:
+      context: ./backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/taxi
+      SPRING_DATASOURCE_USERNAME: taxi
+      SPRING_DATASOURCE_PASSWORD: taxi
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      JWT_SECRET: local-dev-secret-change-me-please-32bytes-min
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  taxi_postgres_data:
