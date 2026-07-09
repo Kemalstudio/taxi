@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/nunito": "^5.2.7",
     "@fontsource/plus-jakarta-sans": "^5.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.454.0",
