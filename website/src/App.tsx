@@ -10,6 +10,8 @@ import { OptionsCard, type OptionsState } from "./components/OptionsCard";
 import { ScheduleCard } from "./components/ScheduleCard";
 import { OrderModal, type OrderSummary } from "./components/OrderModal";
 import { LoginModal, type Session } from "./components/LoginModal";
+import { OfflineBadge } from "./components/OfflineBadge";
+import { OfflineDownload } from "./components/OfflineDownload";
 import { DEFAULT_FROM } from "./data/places";
 import { priceFor, routeThrough } from "./lib/routing";
 import { createRide, token as apiToken, ApiError, NetworkError } from "./lib/api";
@@ -49,6 +51,7 @@ export default function App() {
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [summary, setSummary] = useState<OrderSummary | null>(null);
   const [hintKey, setHintKey] = useState("hint.default");
+  const [me, setMe] = useState<GeoPoint | null>(null);
 
   // ---- address editing ----
   const setText = (target: FieldTarget, text: string) => {
@@ -86,12 +89,15 @@ export default function App() {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         };
+        setMe(point);
         setFrom({ text: point.label, point });
-        mapRef.current?.flyTo({ center: [point.lng, point.lat], zoom: 15 });
+        mapRef.current?.flyTo({ center: [point.lng, point.lat], zoom: 15, essential: true });
         setHintKey("hint.gpsOk");
       },
-      () => setHintKey("hint.gpsErr"),
-      { enableHighAccuracy: true, timeout: 8000 },
+      (err) => {
+        setHintKey(err.code === err.PERMISSION_DENIED ? "hint.gpsDenied" : "hint.gpsErr");
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
     );
   };
 
@@ -146,36 +152,28 @@ export default function App() {
     if (!canOrder || price == null || !from.point || !to.point) return;
     const rows = buildRows();
 
-    // Scheduled booking: backend scheduling is a later phase — confirm locally.
-    if (mode === "later") {
-      rows.push([t("m.atTime"), `${date} ${time}`]);
-      setSummary({ title: t("m.bookTitle"), subtitle: t("m.bookSub"), rows });
-      return;
-    }
+    const booking = mode === "later";
+    if (booking) rows.push([t("m.atTime"), `${date} ${time}`]);
+    const okTitle = booking ? t("m.bookTitle") : t("m.orderTitle");
+    const okSub = booking ? t("m.bookSub") : t("m.orderSub");
 
-    // "Now": create a real ride on the backend when signed in — it shows up in admin.
+    // Signed in against the real backend → create the ride (now, or SCHEDULED for later);
+    // it shows up in the shared admin dashboard.
     if (session?.online && apiToken.get()) {
+      const scheduledAt = booking ? new Date(`${date}T${time}`).toISOString() : undefined;
       try {
-        const ride = await createRide(from.point, to.point);
-        setSummary({
-          title: t("m.orderTitle"),
-          subtitle: t("m.orderSub"),
-          rows: [...rows, [t("m.rideNo"), ride.id.slice(0, 8)]],
-        });
+        const ride = await createRide(from.point, to.point, scheduledAt);
+        setSummary({ title: okTitle, subtitle: okSub, rows: [...rows, [t("m.rideNo"), ride.id.slice(0, 8)]] });
       } catch (e) {
-        if (e instanceof ApiError) {
-          setSummary({ title: t("m.failTitle"), subtitle: e.message, rows });
-        } else if (e instanceof NetworkError) {
-          setSummary({ title: t("m.orderTitle"), subtitle: t("m.demo"), rows });
-        } else {
-          setSummary({ title: t("m.failTitle"), subtitle: String(e), rows });
-        }
+        if (e instanceof ApiError) setSummary({ title: t("m.failTitle"), subtitle: e.message, rows });
+        else if (e instanceof NetworkError) setSummary({ title: okTitle, subtitle: t("m.demo"), rows });
+        else setSummary({ title: t("m.failTitle"), subtitle: String(e), rows });
       }
       return;
     }
 
     // Not signed in (or demo session): local confirmation.
-    setSummary({ title: t("m.orderTitle"), subtitle: t("m.orderSub"), rows });
+    setSummary({ title: okTitle, subtitle: okSub, rows });
   };
 
   return (
@@ -186,6 +184,7 @@ export default function App() {
         to={to.point}
         stops={stops.map((s) => s.field.point).filter(Boolean) as GeoPoint[]}
         route={route}
+        me={me}
       />
 
       <TopNav session={session} onSignIn={() => setAuthOpen(true)} />
@@ -223,6 +222,8 @@ export default function App() {
       </div>
 
       <Footer />
+      <OfflineDownload />
+      <OfflineBadge />
 
       {summary && <OrderModal summary={summary} onClose={() => setSummary(null)} />}
       {authOpen && (
