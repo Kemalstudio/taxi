@@ -15,6 +15,8 @@ import { OfflineDownload } from "./components/OfflineDownload";
 import { DEFAULT_FROM } from "./data/places";
 import { priceFor, routeThrough } from "./lib/routing";
 import { createRide, token as apiToken, ApiError, NetworkError } from "./lib/api";
+import { RideSocket } from "./lib/rideSocket";
+import { ProfileModal } from "./components/ProfileModal";
 import { useI18n } from "./i18n";
 import type { AddressField, GeoPoint, RideMode, RouteResult, StopRow } from "./types";
 
@@ -52,6 +54,21 @@ export default function App() {
   const [summary, setSummary] = useState<OrderSummary | null>(null);
   const [hintKey, setHintKey] = useState("hint.default");
   const [me, setMe] = useState<GeoPoint | null>(null);
+  const [driver, setDriver] = useState<GeoPoint | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const socketRef = useRef<RideSocket | null>(null);
+
+  const startTracking = (rideId: string) => {
+    socketRef.current?.disconnect();
+    setDriver(null);
+    const sock = new RideSocket(rideId, {
+      onLocation: (m) => setDriver({ label: "driver", lat: m.lat, lng: m.lng }),
+    });
+    sock.connect();
+    socketRef.current = sock;
+  };
+
+  useEffect(() => () => socketRef.current?.disconnect(), []);
 
   // ---- address editing ----
   const setText = (target: FieldTarget, text: string) => {
@@ -164,6 +181,7 @@ export default function App() {
       try {
         const ride = await createRide(from.point, to.point, scheduledAt);
         setSummary({ title: okTitle, subtitle: okSub, rows: [...rows, [t("m.rideNo"), ride.id.slice(0, 8)]] });
+        if (!booking) startTracking(ride.id); // live-track the driver once dispatched
       } catch (e) {
         if (e instanceof ApiError) setSummary({ title: t("m.failTitle"), subtitle: e.message, rows });
         else if (e instanceof NetworkError) setSummary({ title: okTitle, subtitle: t("m.demo"), rows });
