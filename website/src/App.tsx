@@ -203,9 +203,14 @@ export default function App() {
         stops={stops.map((s) => s.field.point).filter(Boolean) as GeoPoint[]}
         route={route}
         me={me}
+        driver={driver}
       />
 
-      <TopNav session={session} onSignIn={() => setAuthOpen(true)} />
+      <TopNav
+        session={session}
+        onSignIn={() => setAuthOpen(true)}
+        onProfile={() => setProfileOpen(true)}
+      />
       <PromoCards />
       <ZoomControls mapRef={mapRef} />
 
@@ -250,6 +255,19 @@ export default function App() {
           onAuth={(s) => {
             setSession(s);
             setAuthOpen(false);
+          }}
+        />
+      )}
+      {profileOpen && session && (
+        <ProfileModal
+          session={session}
+          onClose={() => setProfileOpen(false)}
+          onLogout={() => {
+            apiToken.clear();
+            setSession(null);
+            setProfileOpen(false);
+            socketRef.current?.disconnect();
+            setDriver(null);
           }}
         />
       )}
