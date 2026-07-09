@@ -49,6 +49,7 @@ class DispatchServiceTest {
 		dropoff = dropoff,
 		status = status,
 		requestedAt = Instant.now(),
+		scheduledAt = null,
 		acceptedAt = null,
 		arrivedAt = null,
 		startedAt = null,
