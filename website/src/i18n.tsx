@@ -82,6 +82,7 @@ const RU: Dict = {
   "footer.tariffs": "Тарифы",
   "footer.agreement": "Пользовательское соглашение",
   "footer.legal": "Правовая информация",
+  "net.offline": "Офлайн-режим · карта из кэша",
 };
 
 const EN: Dict = {
@@ -156,6 +157,7 @@ const EN: Dict = {
   "footer.tariffs": "Pricing",
   "footer.agreement": "Terms of use",
   "footer.legal": "Legal",
+  "net.offline": "Offline · map from cache",
 };
 
 const TK: Dict = {
@@ -230,6 +232,7 @@ const TK: Dict = {
   "footer.tariffs": "Nyrhlar",
   "footer.agreement": "Ulanyş şertnamasy",
   "footer.legal": "Hukuk maglumaty",
+  "net.offline": "Oflaýn · karta keşden",
 };
 
 const DICTS: Record<Lang, Dict> = { ru: RU, en: EN, tk: TK };
