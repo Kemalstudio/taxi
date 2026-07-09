@@ -1,4 +1,5 @@
 import { MessageSquare, UserPlus, ChevronRight, MessageCircle, Accessibility } from "lucide-react";
+import { useI18n } from "../i18n";
 
 export interface OptionsState {
   comment: string;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function OptionsCard({ value, onChange }: Props) {
+  const { t } = useI18n();
   return (
     <div className="card">
       <div className="opt">
@@ -23,7 +25,7 @@ export function OptionsCard({ value, onChange }: Props) {
             <MessageSquare size={20} />
           </span>
           <input
-            placeholder="Комментарий водителю…"
+            placeholder={t("opt.comment")}
             value={value.comment}
             onChange={(e) => onChange({ comment: e.target.value })}
           />
@@ -34,7 +36,7 @@ export function OptionsCard({ value, onChange }: Props) {
         <span className="rt-ic">
           <UserPlus size={20} />
         </span>
-        <span className="rt-t">Заказ другому человеку</span>
+        <span className="rt-t">{t("opt.other")}</span>
         <span className="chev">
           <ChevronRight size={18} />
         </span>
@@ -43,7 +45,7 @@ export function OptionsCard({ value, onChange }: Props) {
         <div className="other-fields">
           <div className="mini-inp">
             <input
-              placeholder="Имя пассажира"
+              placeholder={t("opt.name")}
               value={value.otherName}
               onChange={(e) => onChange({ otherName: e.target.value })}
             />
@@ -64,14 +66,14 @@ export function OptionsCard({ value, onChange }: Props) {
         <span className="rt-ic">
           <MessageCircle size={20} />
         </span>
-        <span className="rt-t">Общаюсь только текстом</span>
+        <span className="rt-t">{t("opt.textOnly")}</span>
         <span className={`switch${value.textOnly ? " on" : ""}`} />
       </button>
       <button className="row-toggle" onClick={() => onChange({ wheelchair: !value.wheelchair })}>
         <span className="rt-ic">
           <Accessibility size={20} />
         </span>
-        <span className="rt-t">Буду с инвалидным креслом</span>
+        <span className="rt-t">{t("opt.wheelchair")}</span>
         <span className={`switch${value.wheelchair ? " on" : ""}`} />
       </button>
     </div>
