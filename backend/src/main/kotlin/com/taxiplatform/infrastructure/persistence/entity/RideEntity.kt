@@ -40,6 +40,9 @@ class RideEntity(
 	@Column(name = "requested_at", nullable = false)
 	val requestedAt: Instant,
 
+	@Column(name = "scheduled_at")
+	val scheduledAt: Instant?,
+
 	@Column(name = "accepted_at")
 	val acceptedAt: Instant?,
 
@@ -60,6 +63,7 @@ class RideEntity(
 )
 
 enum class RideStatusEntity {
+	SCHEDULED,
 	REQUESTED,
 	SEARCHING,
 	ACCEPTED,
