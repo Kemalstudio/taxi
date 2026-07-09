@@ -18,27 +18,53 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+function isTile(url) {
+  return url.hostname.endsWith("tile.openstreetmap.org");
+}
+
 function shouldCache(request) {
   if (request.method !== "GET") return false;
   const url = new URL(request.url);
-  if (url.origin === self.location.origin) return true; // app shell + assets
-  if (url.hostname.endsWith("tile.openstreetmap.org")) return true; // map tiles
-  return false;
+  return url.origin === self.location.origin || isTile(url);
+}
+
+/** Normalise tile keys so any a/b/c subdomain maps to the same cached entry. */
+function cacheKey(request) {
+  const url = new URL(request.url);
+  if (isTile(url)) return new Request(`https://tile.openstreetmap.org${url.pathname}`);
+  return request;
 }
 
 self.addEventListener("fetch", (event) => {
   if (!shouldCache(event.request)) return;
+  const req = event.request;
+  const url = new URL(req.url);
+  const isNavigation = req.mode === "navigate" || (url.origin === self.location.origin && url.pathname === "/");
+
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE);
-      const cached = await cache.match(event.request);
-      const network = fetch(event.request)
+      const key = cacheKey(req);
+
+      // The HTML shell: network-first so a fresh deploy loads online; cache is the offline fallback.
+      if (isNavigation) {
+        try {
+          const res = await fetch(req);
+          if (res && res.ok) cache.put(key, res.clone());
+          return res;
+        } catch {
+          return (await cache.match(key)) || Response.error();
+        }
+      }
+
+      // Hashed assets + map tiles: cache-first (stale-while-revalidate).
+      const cached = await cache.match(key);
+      const network = fetch(req)
         .then((res) => {
-          if (res && res.ok) cache.put(event.request, res.clone());
+          if (res && res.ok) cache.put(key, res.clone());
           return res;
         })
         .catch(() => cached);
-      // Serve cache immediately when we have it; otherwise wait for the network.
       return cached || network;
     })(),
   );
