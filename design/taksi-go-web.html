@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taksi Go — заказ такси</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<style>
+  @font-face { font-family:'Jakarta'; font-weight:400; font-display:swap; src:url('vendor/fonts/jakarta-400.woff2') format('woff2'); }
+  @font-face { font-family:'Jakarta'; font-weight:500; font-display:swap; src:url('vendor/fonts/jakarta-500.woff2') format('woff2'); }
+  @font-face { font-family:'Jakarta'; font-weight:600; font-display:swap; src:url('vendor/fonts/jakarta-600.woff2') format('woff2'); }
+  @font-face { font-family:'Jakarta'; font-weight:700; font-display:swap; src:url('vendor/fonts/jakarta-700.woff2') format('woff2'); }
+  @font-face { font-family:'Jakarta'; font-weight:800; font-display:swap; src:url('vendor/fonts/jakarta-800.woff2') format('woff2'); }
+
+  :root {
+    --accent: #FFD93B;
+    --accent-press: #F5C81E;
+    --from: #FF6A3D;
+    --to: #F5333F;
+    --ink: #16181C;
+    --muted: #7A8290;
+    --line: #ECEEF1;
+    --field: #F4F6F8;
+    --panel: #FFFFFF;
+    --ok: #1DB268;
+    --shadow: 0 10px 40px rgba(20,24,31,.14);
+    --shadow-sm: 0 4px 16px rgba(20,24,31,.10);
+    --font: 'Jakarta', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: var(--font); color: var(--ink); background: #E9ECEE; -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+  #map { position: fixed; inset: 0; z-index: 1; }
+  .leaflet-container { background: #e6e9ea; font-family: var(--font); }
+  .leaflet-control-attribution { background: rgba(255,255,255,.75) !important; font-size: 10px !important; }
+
+  /* markers */
+  .mk { transform: translate(-50%,-50%); }
+  .mk-from { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 4px solid var(--from); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .mk-stop { width: 13px; height: 13px; border-radius: 50%; background: #fff; border: 3px solid var(--ink); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .pin { transform: translate(-50%,-100%); filter: drop-shadow(0 4px 6px rgba(0,0,0,.3)); }
+
+  /* ---------- top nav ---------- */
+  .topnav {
+    position: fixed; top: 14px; left: 16px; right: 16px; z-index: 500; height: 60px;
+    background: var(--panel); border-radius: 16px; box-shadow: var(--shadow-sm);
+    display: flex; align-items: center; padding: 0 20px; gap: 26px;
+  }
+  .logo { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
+  .logo .badge { background: var(--ink); color: var(--accent); padding: 3px 9px; border-radius: 8px; font-size: 15px; }
+  .navmenu { display: flex; gap: 22px; margin-left: 10px; }
+  .navmenu a { color: var(--ink); text-decoration: none; font-size: 14.5px; font-weight: 500; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  .navmenu a:hover { color: var(--muted); }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .nav-user { font-size: 13.5px; color: var(--muted); }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--ink); color: var(--accent); display: grid; place-items: center; font-weight: 700; }
+
+  /* ---------- left order panel ---------- */
+  .panel {
+    position: fixed; top: 90px; left: 16px; z-index: 450; width: 372px; max-height: calc(100vh - 130px);
+    display: flex; flex-direction: column; gap: 12px; overflow: visible;
+  }
+  .card { background: var(--panel); border-radius: 18px; box-shadow: var(--shadow); }
+  .addr-card { padding: 8px; position: relative; }
+
+  .addr-row { display: flex; align-items: center; gap: 12px; padding: 12px 12px; border-radius: 12px; position: relative; }
+  .addr-row + .addr-row { border-top: 1px solid var(--line); border-radius: 0; }
+  .addr-row .dot { flex-shrink: 0; }
+  .dot-from { width: 13px; height: 13px; border-radius: 50%; border: 3px solid var(--from); }
+  .dot-to { width: 13px; height: 13px; border-radius: 3px; background: var(--ink); }
+  .dot-stop { width: 11px; height: 11px; border-radius: 50%; border: 3px solid var(--muted); }
+  .addr-row .fieldwrap { flex: 1; min-width: 0; }
+  .addr-row .lab { font-size: 11.5px; color: var(--muted); font-weight: 500; }
+  .addr-row input {
+    width: 100%; border: none; outline: none; background: transparent; font-family: inherit;
+    font-size: 15.5px; font-weight: 600; color: var(--ink); padding: 2px 0 0;
+  }
+  .addr-row input::placeholder { color: #B7BEC8; font-weight: 600; }
+  .addr-row .rm { color: #C4CAD2; cursor: pointer; display: grid; place-items: center; }
+  .addr-row .rm:hover { color: var(--to); }
+
+  .add-stop { display: flex; align-items: center; gap: 12px; padding: 13px 14px; color: var(--ink); font-size: 14.5px; font-weight: 600; cursor: pointer; border-top: 1px solid var(--line); }
+  .add-stop .ic { width: 24px; display: grid; place-items: center; color: var(--muted); }
+  .add-stop:hover { color: var(--muted); }
+
+  /* suggestions dropdown */
+  .suggest {
+    position: absolute; left: 8px; right: 8px; background: var(--panel); border-radius: 14px;
+    box-shadow: var(--shadow); z-index: 60; overflow: hidden; display: none; margin-top: 6px;
+    border: 1px solid var(--line);
+  }
+  .suggest.on { display: block; }
+  .sug { display: flex; align-items: center; gap: 12px; padding: 11px 14px; cursor: pointer; }
+  .sug:hover { background: var(--field); }
+  .sug .sic { width: 34px; height: 34px; border-radius: 10px; background: var(--field); color: var(--muted); display: grid; place-items: center; flex-shrink: 0; }
+  .sug .sk { font-size: 14.5px; font-weight: 600; }
+  .sug .sv { font-size: 12px; color: var(--muted); }
+
+  /* saved places grid */
+  .saved-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
+  .saved-tile {
+    background: var(--field); border-radius: 13px; padding: 12px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 7px;
+    transition: background .15s;
+  }
+  .saved-tile:hover { background: #ECEFF3; }
+  .saved-tile .sti { width: 30px; height: 30px; border-radius: 9px; background: #fff; color: var(--ink); display: grid; place-items: center; }
+  .saved-tile .stk { font-size: 12.5px; font-weight: 600; line-height: 1.15; }
+  .saved-tile .stv { font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .opt { padding: 4px 10px 10px; display: flex; flex-direction: column; }
+  .comment { display: flex; align-items: center; gap: 10px; padding: 12px 12px; border-radius: 12px; background: var(--field); }
+  .comment .ic { color: var(--muted); display: grid; place-items: center; }
+  .comment input { flex: 1; border: none; outline: none; background: transparent; font-family: inherit; font-size: 14.5px; color: var(--ink); }
+  .comment input::placeholder { color: var(--muted); }
+
+  .row-toggle { display: flex; align-items: center; gap: 12px; padding: 13px 12px; cursor: pointer; border-top: 1px solid var(--line); }
+  .row-toggle .rt-ic { color: var(--muted); display: grid; place-items: center; }
+  .row-toggle .rt-t { flex: 1; font-size: 14.5px; font-weight: 550; }
+  .row-toggle .chev { color: #C4CAD2; }
+
+  .switch { width: 42px; height: 25px; border-radius: 999px; background: #D7DCE2; position: relative; transition: background .2s; flex-shrink: 0; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+  .switch.on { background: var(--ok); }
+  .switch.on::after { transform: translateX(17px); }
+
+  .other-fields { display: none; flex-direction: column; gap: 8px; padding: 4px 12px 12px; }
+  .other-fields.on { display: flex; }
+  .mini-inp { display: flex; align-items: center; gap: 9px; background: var(--field); border-radius: 11px; padding: 11px 13px; }
+  .mini-inp .cc { font-size: 14px; font-weight: 600; padding-right: 9px; border-right: 1px solid var(--line); color: var(--ink); }
+  .mini-inp input { flex: 1; border: none; outline: none; background: transparent; font-family: inherit; font-size: 14px; }
+
+  /* schedule segmented */
+  .seg { display: flex; background: var(--field); border-radius: 12px; padding: 4px; margin: 4px 10px 0; }
+  .seg button { flex: 1; border: none; background: transparent; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 9px; border-radius: 9px; cursor: pointer; }
+  .seg button.on { background: #fff; color: var(--ink); box-shadow: var(--shadow-sm); }
+  .when { display: none; gap: 8px; padding: 10px; }
+  .when.on { display: flex; }
+  .when input { flex: 1; border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; font-family: inherit; font-size: 14px; color: var(--ink); background: var(--field); outline: none; }
+  .when input:focus { border-color: var(--accent-press); }
+
+  /* fare + order */
+  .fare-card { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; }
+  .fare-left .fl-k { font-size: 12px; color: var(--muted); }
+  .fare-left .fl-v { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .fare-right { text-align: right; font-size: 12.5px; color: var(--muted); }
+  .fare-right b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .order-btn {
+    width: 100%; border: none; font-family: inherit; font-size: 16.5px; font-weight: 800; color: var(--ink);
+    background: var(--accent); padding: 17px; border-radius: 16px; cursor: pointer; transition: background .15s, transform .1s;
+  }
+  .order-btn:hover { background: var(--accent-press); }
+  .order-btn:active { transform: scale(.99); }
+  .order-btn:disabled { background: #EEF0F3; color: #B7BEC8; cursor: not-allowed; }
+
+  /* promo cards over map */
+  .promo-phone {
+    position: fixed; top: 90px; left: 404px; z-index: 400; background: var(--accent); border-radius: 16px;
+    padding: 12px 16px; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 14px; max-width: 330px;
+  }
+  .promo-phone .pp-num { font-size: 18px; font-weight: 800; }
+  .promo-phone .pp-sub { font-size: 12.5px; color: #6A5A16; }
+  .promo-phone .pp-car { font-size: 30px; }
+  .promo-driver {
+    position: fixed; top: 90px; right: 16px; z-index: 400; background: var(--panel); border-radius: 16px;
+    padding: 14px 18px; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 14px;
+  }
+  .promo-driver .pd-t { font-size: 15px; font-weight: 700; }
+  .promo-driver .pd-s { font-size: 12.5px; color: var(--muted); }
+  .promo-driver .pd-ph { width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg,#3a3f4a,#16181c); display: grid; place-items: center; color: var(--accent); }
+
+  /* map zoom controls */
+  .zoomctl { position: fixed; right: 22px; bottom: 120px; z-index: 400; display: flex; flex-direction: column; gap: 8px; }
+  .zoomctl button { width: 44px; height: 44px; border-radius: 12px; border: none; background: var(--panel); box-shadow: var(--shadow-sm); font-size: 22px; cursor: pointer; color: var(--ink); display: grid; place-items: center; }
+  .zoomctl button:hover { background: var(--field); }
+
+  /* footer */
+  .footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 300; padding: 10px 24px; font-size: 12px; color: var(--muted); display: flex; gap: 18px; flex-wrap: wrap; align-items: center; pointer-events: none; }
+  .footer a { color: var(--muted); text-decoration: none; pointer-events: auto; }
+  .footer a:hover { color: var(--ink); }
+
+  /* order result toast/modal */
+  .overlay { position: fixed; inset: 0; z-index: 900; background: rgba(16,18,22,.5); display: none; align-items: center; justify-content: center; padding: 24px; }
+  .overlay.on { display: flex; }
+  .modal { background: var(--panel); border-radius: 22px; width: 420px; max-width: 100%; padding: 26px; box-shadow: var(--shadow); animation: pop .25s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+  .modal .ok-ic { width: 60px; height: 60px; border-radius: 50%; background: var(--ok); display: grid; place-items: center; margin-bottom: 16px; }
+  .modal h3 { margin: 0 0 4px; font-size: 22px; font-weight: 800; }
+  .modal .msub { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+  .summary { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .sr { display: flex; justify-content: space-between; font-size: 14px; }
+  .sr .k { color: var(--muted); }
+  .sr .v { font-weight: 600; text-align: right; }
+  .modal .close { width: 100%; border: none; background: var(--ink); color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; padding: 15px; border-radius: 14px; cursor: pointer; }
+
+  .hint { font-size: 11.5px; color: var(--muted); text-align: center; padding: 2px 0 6px; }
+
+  @media (max-width: 900px) {
+    .promo-phone, .promo-driver, .navmenu, .nav-user { display: none; }
+    .panel { width: calc(100vw - 32px); }
+  }
+</style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- top nav -->
+  <nav class="topnav">
+    <div class="logo"><span class="badge">Go</span> Taksi</div>
+    <div class="navmenu">
+      <a>Пользователям <i data-lucide="chevron-down" style="width:15px"></i></a>
+      <a>Водителям <i data-lucide="chevron-down" style="width:15px"></i></a>
+      <a>Бизнесу <i data-lucide="chevron-down" style="width:15px"></i></a>
+      <a>Партнёрам <i data-lucide="chevron-down" style="width:15px"></i></a>
+      <a>Скачать</a>
+    </div>
+    <div class="nav-right">
+      <span class="nav-user">kemalatayew913@…</span>
+      <div class="avatar">K</div>
+    </div>
+  </nav>
+
+  <!-- promo cards -->
+  <div class="promo-phone">
+    <div><div class="pp-num">+993 (12) 46-70-74</div><div class="pp-sub">Заказ такси по телефону</div></div>
+    <div class="pp-car">🚕</div>
+  </div>
+  <div class="promo-driver">
+    <div><div class="pd-t">Стать водителем ›</div><div class="pd-s">с партнёрами Taksi Go</div></div>
+    <div class="pd-ph"><i data-lucide="car-front"></i></div>
+  </div>
+
+  <!-- zoom -->
+  <div class="zoomctl">
+    <button id="zoomIn" aria-label="Приблизить">+</button>
+    <button id="zoomOut" aria-label="Отдалить">−</button>
+  </div>
+
+  <!-- left order panel -->
+  <div class="panel">
+    <div class="card addr-card" id="addrCard">
+      <div class="addr-row" data-kind="from">
+        <span class="dot dot-from"></span>
+        <div class="fieldwrap"><div class="lab">Откуда</div><input data-role="from" placeholder="Откуда едем" autocomplete="off"></div>
+      </div>
+      <div id="stopsHost"></div>
+      <div class="addr-row" data-kind="to">
+        <span class="dot dot-to"></span>
+        <div class="fieldwrap"><div class="lab">Куда?</div><input data-role="to" placeholder="Куда едем" autocomplete="off"></div>
+      </div>
+      <div class="add-stop" id="addStop"><span class="ic"><i data-lucide="plus"></i></span> Добавить остановку</div>
+      <div class="suggest" id="suggest"></div>
+    </div>
+
+    <div class="card">
+      <div class="saved-grid">
+        <div class="saved-tile" data-place="Parahat 7, jaý 42" data-lat="37.9200" data-lng="58.4200" data-target="to">
+          <span class="sti"><i data-lucide="house"></i></span>
+          <div><div class="stk">Дом</div><div class="stv">Parahat 7</div></div>
+        </div>
+        <div class="saved-tile" data-place="Garaşsyzlyk şaýoly 15" data-lat="37.9100" data-lng="58.3800" data-target="to">
+          <span class="sti"><i data-lucide="briefcase"></i></span>
+          <div><div class="stk">Работа</div><div class="stv">Garaşsyzlyk 15</div></div>
+        </div>
+        <div class="saved-tile" data-place="Aşgabat Halkara Howa Menzili" data-lat="37.9868" data-lng="58.3610" data-target="to">
+          <span class="sti"><i data-lucide="plane"></i></span>
+          <div><div class="stk">Аэропорт</div><div class="stv">Howa menzili</div></div>
+        </div>
+        <div class="saved-tile" data-place="Berkarar Söwda Merkezi" data-lat="37.9280" data-lng="58.3860" data-target="to">
+          <span class="sti"><i data-lucide="shopping-bag"></i></span>
+          <div><div class="stk">Berkarar</div><div class="stv">Söwda merkezi</div></div>
+        </div>
+        <div class="saved-tile" data-place="Gülüstan bazary" data-lat="37.9500" data-lng="58.3850" data-target="to">
+          <span class="sti"><i data-lucide="store"></i></span>
+          <div><div class="stk">Базар</div><div class="stv">Gülüstan</div></div>
+        </div>
+        <div class="saved-tile" data-place="Olimpiýa şäherçesi" data-lat="37.9000" data-lng="58.4100" data-target="to">
+          <span class="sti"><i data-lucide="dumbbell"></i></span>
+          <div><div class="stk">Стадион</div><div class="stv">Olimpiýa</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="opt">
+        <div class="comment">
+          <span class="ic"><i data-lucide="message-square"></i></span>
+          <input id="comment" placeholder="Комментарий водителю…">
+        </div>
+      </div>
+      <div class="row-toggle" id="otherToggle">
+        <span class="rt-ic"><i data-lucide="user-plus"></i></span>
+        <span class="rt-t">Заказ другому человеку</span>
+        <span class="chev"><i data-lucide="chevron-right"></i></span>
+      </div>
+      <div class="other-fields" id="otherFields">
+        <div class="mini-inp"><input id="otherName" placeholder="Имя пассажира"></div>
+        <div class="mini-inp"><span class="cc">🇹🇲 +993</span><input id="otherPhone" placeholder="65 12 34 56" inputmode="tel"></div>
+      </div>
+      <div class="row-toggle" data-sw><span class="rt-ic"><i data-lucide="message-circle"></i></span><span class="rt-t">Общаюсь только текстом</span><span class="switch"></span></div>
+      <div class="row-toggle" data-sw><span class="rt-ic"><i data-lucide="accessibility"></i></span><span class="rt-t">Буду с инвалидным креслом</span><span class="switch"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="seg" id="whenSeg">
+        <button class="on" data-when="now">Сейчас</button>
+        <button data-when="later">Ко времени</button>
+      </div>
+      <div class="when" id="whenFields">
+        <input type="date" id="whenDate">
+        <input type="time" id="whenTime" value="08:00">
+      </div>
+      <div class="fare-card">
+        <div class="fare-left"><div class="fl-k">Стоимость · наличные</div><div class="fl-v" id="fareVal">— TMT</div></div>
+        <div class="fare-right"><div id="distVal">—</div><div id="timeVal"></div></div>
+      </div>
+      <div style="padding:0 10px 12px;">
+        <button class="order-btn" id="orderBtn" disabled>Укажите точки A и B</button>
+      </div>
+      <div class="hint" id="statusHint">Введите адрес «Откуда» и «Куда» — маршрут построится по картам</div>
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div class="footer">
+    <span>🌐 Язык · Русский</span>
+    <a>Тарифы</a><a>Партнёрам</a><a>Пользовательское соглашение</a><a>Правовая информация</a>
+    <span style="margin-left:auto;">© 2011–2026 Taksi Go — информационный сервис.</span>
+  </div>
+
+  <!-- order result -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="ok-ic"><i data-lucide="check" style="color:#fff;width:32px;height:32px"></i></div>
+      <h3 id="modalTitle">Заказ принят</h3>
+      <p class="msub" id="modalSub">Ищем ближайшего водителя…</p>
+      <div class="summary" id="modalSummary"></div>
+      <button class="close" id="modalClose">Готово</button>
+    </div>
+  </div>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/lucide/lucide.min.js"></script>
+  <script>
+    // ---------- data ----------
+    var PLACES = [
+      { name:'Bitarap Türkmenistan şaýoly', sub:'Aşgabat', lat:37.9409, lng:58.3794 },
+      { name:'Aşgabat Halkara Howa Menzili', sub:'Аэропорт · 11 км', lat:37.9868, lng:58.3610 },
+      { name:'Berkarar Söwda Merkezi', sub:'ТЦ · 3.2 км', lat:37.9280, lng:58.3860 },
+      { name:'Garaşsyzlyk binasy', sub:'Монумент · 5.1 км', lat:37.9100, lng:58.3800 },
+      { name:'Türkmenbaşy şaýoly', sub:'Проспект', lat:37.9520, lng:58.3900 },
+      { name:'Parahat 7, jaý 42', sub:'Жилой район', lat:37.9200, lng:58.4200 },
+      { name:'Olimpiýa şäherçesi', sub:'Стадион', lat:37.9000, lng:58.4100 },
+      { name:'Ertogrul Gazy metjidi', sub:'Мечеть', lat:37.9450, lng:58.3700 },
+      { name:'Gülüstan bazary', sub:'Русский базар', lat:37.9500, lng:58.3850 },
+      { name:'Türkmenistan döwlet uniwersiteti', sub:'Университет', lat:37.9420, lng:58.3980 }
+    ];
+
+    // ---------- map ----------
+    var map = L.map('map', { zoomControl:false, attributionControl:true }).setView([37.9500, 58.3800], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
+    document.getElementById('zoomIn').onclick = function(){ map.zoomIn(); };
+    document.getElementById('zoomOut').onclick = function(){ map.zoomOut(); };
+
+    function divIcon(cls, size, anchorBottom){
+      return L.divIcon({ className:'', html:'<div class="mk '+cls+'"></div>', iconSize:[size,size], iconAnchor:[size/2, anchorBottom? size : size/2] });
+    }
+    var pinIcon = L.divIcon({ className:'', iconSize:[30,40], iconAnchor:[15,40],
+      html:'<div class="pin"><svg width="30" height="40" viewBox="0 0 30 40"><path d="M15 0C6.7 0 0 6.7 0 15c0 10 15 25 15 25s15-15 15-25C30 6.7 23.3 0 15 0Z" fill="#F5333F"/><circle cx="15" cy="15" r="6" fill="#fff"/></svg></div>' });
+
+    // ---------- state ----------
+    var state = { from:{ label:'Bitarap Türkmenistan şaýoly', lat:37.9409, lng:58.3794 }, stops:[], to:null };
+    var markers = { from:null, to:null, stops:[] };
+    var routeLine = null;
+    var mode = 'now';
+
+    document.querySelector('input[data-role="from"]').value = state.from.label;
+    setMarker('from');
+
+    function setMarker(kind, idx){
+      if (kind === 'from') {
+        if (markers.from) map.removeLayer(markers.from);
+        if (state.from) markers.from = L.marker([state.from.lat, state.from.lng], { icon: divIcon('mk-from',16) }).addTo(map);
+      } else if (kind === 'to') {
+        if (markers.to) map.removeLayer(markers.to);
+        if (state.to) markers.to = L.marker([state.to.lat, state.to.lng], { icon: pinIcon }).addTo(map);
+      }
+    }
+    function redrawStops(){
+      markers.stops.forEach(function(m){ map.removeLayer(m); });
+      markers.stops = state.stops.filter(Boolean).map(function(s){
+        return L.marker([s.lat, s.lng], { icon: divIcon('mk-stop',13) }).addTo(map);
+      });
+    }
+
+    // ---------- routing (OSRM real roads, fallback straight) ----------
+    function orderedPoints(){
+      var pts = [state.from].concat(state.stops.filter(Boolean));
+      if (state.to) pts.push(state.to);
+      return pts.filter(Boolean);
+    }
+    function priceFor(km){ return Math.max(15, Math.round((10 + km * 3.2))); }
+
+    function drawRoute(){
+      var pts = orderedPoints();
+      if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+      var btn = document.getElementById('orderBtn');
+      if (pts.length < 2 || !state.to) {
+        btn.disabled = true; btn.textContent = 'Укажите точки A и B';
+        document.getElementById('fareVal').textContent = '— TMT';
+        document.getElementById('distVal').textContent = '—';
+        document.getElementById('timeVal').textContent = '';
+        return;
+      }
+      document.getElementById('statusHint').textContent = 'Строим маршрут по картам…';
+      var coordStr = pts.map(function(p){ return p.lng + ',' + p.lat; }).join(';');
+      fetch('https://router.project-osrm.org/route/v1/driving/' + coordStr + '?overview=full&geometries=geojson')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if (!data.routes || !data.routes.length) throw new Error('no route');
+          var route = data.routes[0];
+          var latlngs = route.geometry.coordinates.map(function(c){ return [c[1], c[0]]; });
+          routeLine = L.polyline(latlngs, { color:'#1DB268', weight:6, opacity:.95, lineJoin:'round', lineCap:'round' }).addTo(map);
+          map.fitBounds(routeLine.getBounds(), { paddingTopLeft:[400,120], paddingBottomRight:[60,140] });
+          finishRoute(route.distance/1000, route.duration/60);
+        })
+        .catch(function(){
+          // fallback: straight polyline + haversine distance
+          var latlngs = pts.map(function(p){ return [p.lat, p.lng]; });
+          routeLine = L.polyline(latlngs, { color:'#1DB268', weight:6, opacity:.9, dashArray:'2 10', lineCap:'round' }).addTo(map);
+          map.fitBounds(routeLine.getBounds(), { paddingTopLeft:[400,120], paddingBottomRight:[60,140] });
+          var km = 0; for (var i=1;i<pts.length;i++) km += haversine(pts[i-1], pts[i]);
+          finishRoute(km, km/0.5);
+        });
+    }
+    function finishRoute(km, min){
+      var price = priceFor(km);
+      document.getElementById('fareVal').textContent = price + ' TMT';
+      document.getElementById('distVal').innerHTML = '<b>' + km.toFixed(1) + '</b> км';
+      document.getElementById('timeVal').innerHTML = '≈ <b>' + Math.round(min) + '</b> мин';
+      var btn = document.getElementById('orderBtn');
+      btn.disabled = false;
+      btn.textContent = (mode === 'later') ? ('Забронировать · ' + price + ' TMT') : ('Заказать · ' + price + ' TMT');
+      document.getElementById('statusHint').textContent = 'Оплата наличными водителю (манат)';
+      btn.dataset.price = price;
+    }
+    function haversine(a, b){
+      var R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
+      var s=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+      return R*2*Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+    }
+
+    // ---------- address suggestions ----------
+    var suggest = document.getElementById('suggest');
+    var activeInput = null;
+
+    function openSuggest(input){
+      activeInput = input;
+      var q = input.value.trim().toLowerCase();
+      var list = PLACES.filter(function(p){ return !q || p.name.toLowerCase().indexOf(q) >= 0; }).slice(0, 6);
+      suggest.innerHTML = list.map(function(p){
+        return '<div class="sug" data-lat="'+p.lat+'" data-lng="'+p.lng+'" data-name="'+p.name+'">'+
+          '<span class="sic"><i data-lucide="map-pin"></i></span>'+
+          '<div><div class="sk">'+p.name+'</div><div class="sv">'+p.sub+'</div></div></div>';
+      }).join('');
+      // position under the active row
+      var card = document.getElementById('addrCard');
+      var rowRect = input.closest('.addr-row').getBoundingClientRect();
+      var cardRect = card.getBoundingClientRect();
+      suggest.style.top = (rowRect.bottom - cardRect.top - 2) + 'px';
+      suggest.classList.add('on');
+      if (window.lucide) lucide.createIcons();
+    }
+    function closeSuggest(){ suggest.classList.remove('on'); activeInput = null; }
+
+    suggest.addEventListener('mousedown', function(e){
+      var s = e.target.closest('.sug'); if (!s || !activeInput) return;
+      var role = activeInput.getAttribute('data-role');
+      var val = { label:s.dataset.name, lat:+s.dataset.lat, lng:+s.dataset.lng };
+      activeInput.value = s.dataset.name;
+      applyPoint(role, activeInput, val);
+      closeSuggest();
+    });
+
+    function applyPoint(role, input, val){
+      if (role === 'from') { state.from = val; setMarker('from'); }
+      else if (role === 'to') { state.to = val; setMarker('to'); }
+      else if (role.indexOf('stop') === 0) {
+        var i = +role.split('-')[1];
+        state.stops[i] = val; redrawStops();
+      }
+      drawRoute();
+    }
+
+    document.addEventListener('focusin', function(e){
+      if (e.target.matches('.addr-row input')) openSuggest(e.target);
+    });
+    document.addEventListener('input', function(e){
+      if (e.target.matches('.addr-row input')) openSuggest(e.target);
+    });
+    document.addEventListener('mousedown', function(e){
+      if (!e.target.closest('.addr-card')) closeSuggest();
+    });
+
+    // ---------- add / remove stops ----------
+    var stopCount = 0;
+    document.getElementById('addStop').addEventListener('click', function(){
+      var i = stopCount++;
+      state.stops[i] = null;
+      var host = document.getElementById('stopsHost');
+      var row = document.createElement('div');
+      row.className = 'addr-row';
+      row.dataset.kind = 'stop';
+      row.innerHTML = '<span class="dot dot-stop"></span>'+
+        '<div class="fieldwrap"><div class="lab">Остановка</div><input data-role="stop-'+i+'" placeholder="Адрес остановки" autocomplete="off"></div>'+
+        '<span class="rm" title="Убрать"><i data-lucide="x"></i></span>';
+      host.appendChild(row);
+      row.querySelector('.rm').addEventListener('click', function(){
+        state.stops[i] = undefined; row.remove(); redrawStops(); drawRoute();
+      });
+      if (window.lucide) lucide.createIcons();
+      row.querySelector('input').focus();
+    });
+
+    // ---------- saved tiles ----------
+    document.querySelectorAll('.saved-tile').forEach(function(t){
+      t.addEventListener('click', function(){
+        var val = { label:t.dataset.place, lat:+t.dataset.lat, lng:+t.dataset.lng };
+        state.to = val; setMarker('to');
+        document.querySelector('input[data-role="to"]').value = t.dataset.place;
+        drawRoute();
+      });
+    });
+
+    // ---------- toggles ----------
+    document.getElementById('otherToggle').addEventListener('click', function(){
+      document.getElementById('otherFields').classList.toggle('on');
+    });
+    document.querySelectorAll('[data-sw]').forEach(function(r){
+      r.addEventListener('click', function(){ r.querySelector('.switch').classList.toggle('on'); });
+    });
+
+    // ---------- schedule ----------
+    (function(){
+      var d = new Date();
+      document.getElementById('whenDate').value = d.toISOString().slice(0,10);
+    })();
+    document.getElementById('whenSeg').addEventListener('click', function(e){
+      var b = e.target.closest('button'); if (!b) return;
+      this.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      mode = b.dataset.when;
+      document.getElementById('whenFields').classList.toggle('on', mode === 'later');
+      if (!document.getElementById('orderBtn').disabled) {
+        var price = document.getElementById('orderBtn').dataset.price;
+        document.getElementById('orderBtn').textContent = (mode==='later'?'Забронировать · ':'Заказать · ') + price + ' TMT';
+      }
+    });
+
+    // ---------- order ----------
+    document.getElementById('orderBtn').addEventListener('click', function(){
+      if (this.disabled) return;
+      var price = this.dataset.price || '—';
+      var rows = [];
+      rows.push(['Маршрут', state.from.label + ' → ' + (state.to ? state.to.label : '')]);
+      if (state.stops.filter(Boolean).length) rows.push(['Остановки', state.stops.filter(Boolean).map(function(s){return s.label;}).join(', ')]);
+      rows.push(['Стоимость', price + ' TMT · наличными']);
+      var cm = document.getElementById('comment').value.trim();
+      if (cm) rows.push(['Комментарий', cm]);
+      var on = document.getElementById('otherName').value.trim();
+      if (document.getElementById('otherFields').classList.contains('on') && on) {
+        rows.push(['Пассажир', on + ' · +993 ' + (document.getElementById('otherPhone').value.trim() || '—')]);
+      }
+      if (mode === 'later') {
+        rows.push(['Ко времени', document.getElementById('whenDate').value + ' ' + document.getElementById('whenTime').value]);
+        document.getElementById('modalTitle').textContent = 'Поездка забронирована';
+        document.getElementById('modalSub').textContent = 'Мы подадим машину к указанному времени.';
+      } else {
+        document.getElementById('modalTitle').textContent = 'Заказ принят';
+        document.getElementById('modalSub').textContent = 'Ищем ближайшего водителя…';
+      }
+      document.getElementById('modalSummary').innerHTML = rows.map(function(r){
+        return '<div class="sr"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>';
+      }).join('');
+      document.getElementById('overlay').classList.add('on');
+      if (window.lucide) lucide.createIcons();
+    });
+    document.getElementById('modalClose').addEventListener('click', function(){
+      document.getElementById('overlay').classList.remove('on');
+    });
+    document.getElementById('overlay').addEventListener('click', function(e){
+      if (e.target === this) this.classList.remove('on');
+    });
+
+    // init icons
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>
