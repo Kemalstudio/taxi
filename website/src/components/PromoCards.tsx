@@ -22,7 +22,7 @@ export function PromoCards() {
         </div>
       </div>
     </>
-  );3
+  );
 }
 
 export function Footer() {
