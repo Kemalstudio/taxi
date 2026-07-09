@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Plus, X, MapPin } from "lucide-react";
+import { Plus, X, MapPin, LocateFixed } from "lucide-react";
 import { PLACES } from "../data/places";
+import { useI18n } from "../i18n";
 import type { AddressField, GeoPoint, StopRow } from "../types";
 
 export type FieldTarget = "from" | "to" | `stop-${number}`;
@@ -13,6 +14,7 @@ interface Props {
   onPick: (target: FieldTarget, point: GeoPoint) => void;
   onAddStop: () => void;
   onRemoveStop: (id: number) => void;
+  onGps: () => void;
 }
 
 function suggestionsFor(text: string): typeof PLACES {
@@ -20,7 +22,8 @@ function suggestionsFor(text: string): typeof PLACES {
   return PLACES.filter((p) => !q || p.name.toLowerCase().includes(q)).slice(0, 6);
 }
 
-export function AddressCard({ from, to, stops, onText, onPick, onAddStop, onRemoveStop }: Props) {
+export function AddressCard({ from, to, stops, onText, onPick, onAddStop, onRemoveStop, onGps }: Props) {
+  const { t } = useI18n();
   const [active, setActive] = useState<FieldTarget | null>(null);
 
   const renderSuggest = (target: FieldTarget, text: string) => {
@@ -84,14 +87,20 @@ export function AddressCard({ from, to, stops, onText, onPick, onAddStop, onRemo
 
   return (
     <div className="card addr-card">
-      {row("from", "dot-from", "Откуда", "Откуда едем", from)}
-      {stops.map((s) => row(`stop-${s.id}`, "dot-stop", "Остановка", "Адрес остановки", s.field, s.id))}
-      {row("to", "dot-to", "Куда?", "Куда едем", to)}
+      {row("from", "dot-from", t("addr.from"), t("addr.fromPh"), from)}
+      {stops.map((s) => row(`stop-${s.id}`, "dot-stop", t("addr.stop"), t("addr.stopPh"), s.field, s.id))}
+      {row("to", "dot-to", t("addr.to"), t("addr.toPh"), to)}
+      <button className="gps-btn" onClick={onGps}>
+        <span className="ic">
+          <LocateFixed size={19} />
+        </span>
+        {t("addr.gps")}
+      </button>
       <button className="add-stop" onClick={onAddStop}>
         <span className="ic">
           <Plus size={20} />
         </span>{" "}
-        Добавить остановку
+        {t("addr.addStop")}
       </button>
     </div>
   );
