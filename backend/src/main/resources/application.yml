@@ -31,6 +31,7 @@ taxi:
     search-radius-km: 5.0
     offer-timeout-seconds: 15
     offer-sweep-interval-ms: 2000
+    scheduled-sweep-interval-ms: 15000
   admin:
     seed-enabled: ${ADMIN_SEED_ENABLED:true}
     email: ${ADMIN_EMAIL:admin@taxi.local}
