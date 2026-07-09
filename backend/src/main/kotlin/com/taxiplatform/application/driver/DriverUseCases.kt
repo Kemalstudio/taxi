@@ -2,6 +2,8 @@ package com.taxiplatform.application.driver
 
 import com.taxiplatform.application.ports.DriverGeoIndex
 import com.taxiplatform.application.ports.DriverProfileRepository
+import com.taxiplatform.application.ports.RideEventsPublisher
+import com.taxiplatform.application.ports.RideRepository
 import com.taxiplatform.application.ride.DriverProfileNotFoundException
 import com.taxiplatform.domain.driver.DriverProfile
 import com.taxiplatform.domain.driver.DriverStatus
@@ -31,11 +33,19 @@ class UpdateDriverStatusUseCase(
 class UpdateDriverLocationUseCase(
 	private val driverProfileRepository: DriverProfileRepository,
 	private val driverGeoIndex: DriverGeoIndex,
+	private val rideRepository: RideRepository,
+	private val rideEventsPublisher: RideEventsPublisher,
 ) {
 	fun execute(driverId: UUID, point: GeoPoint) {
 		val profile = driverProfileRepository.findByUserId(driverId) ?: throw DriverProfileNotFoundException(driverId)
+		// Only ONLINE (idle) drivers belong in the dispatch geo-index.
 		if (profile.status == DriverStatus.ONLINE) {
 			driverGeoIndex.updateLocation(driverId, point)
+		}
+		// If the driver is on a ride, stream their position to the passenger's ride topic
+		// for live tracking (works while BUSY, which the geo-index skips).
+		rideRepository.findActiveByDriver(driverId)?.let { ride ->
+			rideEventsPublisher.driverLocation(ride.id, driverId, point)
 		}
 	}
 }
