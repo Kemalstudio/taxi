@@ -13,37 +13,45 @@
   @font-face { font-family:'Jakarta'; font-style:normal; font-weight:800; font-display:swap; src:url('vendor/fonts/jakarta-800.woff2') format('woff2'); }
 
   :root {
-    --green: #17A06B;
-    --green-deep: #0E7E53;
-    --green-soft: #E4F3EC;
-    --ink: #0F1613;
-    --slate: #38463F;
-    --mist: #7E8F86;
+    /* Taksi Go site palette: yellow accent, cool-gray neutrals, green kept for route/progress */
+    --accent: #FFD93B;
+    --accent-press: #F5C81E;
+    --accent-ink: #16181C;
+    --green: #1DB268;
+    --green-deep: #159A57;
+    --green-soft: #E7F6EE;
+    --ink: #16181C;
+    --slate: #38414B;
+    --mist: #7A8290;
     --red: #E5484D;
     --amber: #E9A23B;
+    --from: #FF6A3D;
+    --to: #F5333F;
 
-    --ground: #EDF1EE;
+    --ground: #E9ECEE;
     --panel: #FFFFFF;
-    --panel-2: #F5F8F5;
-    --line: #E4EAE6;
-    --text: #101713;
-    --text-2: #63736B;
-    --tab-off: #9AA8A0;
+    --panel-2: #F4F6F8;
+    --line: #ECEEF1;
+    --text: #16181C;
+    --text-2: #7A8290;
+    --tab-off: #A2A9B4;
 
     --radius: 24px;
     --font: 'Jakarta', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
   }
   :root[data-theme="dark"] {
-    --green: #21B078;
-    --green-deep: #178C5E;
-    --green-soft: #14261E;
-    --ground: #070B09;
-    --panel: #101713;
-    --panel-2: #16201B;
-    --line: #22302A;
-    --text: #EAF2ED;
-    --text-2: #8D9E95;
-    --tab-off: #566159;
+    --accent: #FFD93B;
+    --accent-press: #F5C81E;
+    --green: #2ECB84;
+    --green-deep: #1DB268;
+    --green-soft: #16241C;
+    --ground: #0B0D10;
+    --panel: #14171C;
+    --panel-2: #1B1F26;
+    --line: #262B33;
+    --text: #EDEFF2;
+    --text-2: #9AA1AD;
+    --tab-off: #5A626D;
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -51,8 +59,8 @@
   body {
     margin: 0; font-family: var(--font); color: var(--text);
     background:
-      radial-gradient(1100px 620px at 10% -10%, rgba(23,160,107,.16), transparent 60%),
-      radial-gradient(820px 540px at 100% 0%, rgba(23,160,107,.08), transparent 55%),
+      radial-gradient(1100px 620px at 10% -10%, rgba(255,217,59,.20), transparent 60%),
+      radial-gradient(820px 540px at 100% 0%, rgba(20,24,31,.06), transparent 55%),
       var(--ground);
     display: grid; place-items: center; min-height: 100%; padding: 30px 16px;
     -webkit-font-smoothing: antialiased;
@@ -62,7 +70,7 @@
   .stage-head { text-align: center; }
   .stage-head .kick {
     font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
-    color: var(--green-deep);
+    color: var(--text-2);
   }
   .stage-head h1 { margin: 6px 0 0; font-size: 20px; font-weight: 750; letter-spacing: -.02em; }
   .stage-head p { margin: 4px 0 0; font-size: 13px; color: var(--text-2); }
@@ -73,8 +81,8 @@
     border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 8px 14px;
     display: inline-flex; align-items: center; gap: 7px; transition: .18s;
   }
-  .tbtn:hover { border-color: var(--green); color: var(--text); }
-  .tbtn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+  .tbtn:hover { border-color: var(--accent-press); color: var(--text); }
+  .tbtn:focus-visible { outline: 2px solid var(--accent-press); outline-offset: 2px; }
 
   /* phone */
   .phone {
@@ -116,8 +124,8 @@
   .mk { transform: translate(-50%, -50%); }
   .mk-car {
     width: 30px; height: 30px; border-radius: 9px;
-    background: linear-gradient(150deg, var(--green), var(--green-deep));
-    display: grid; place-items: center; box-shadow: 0 6px 14px rgba(23,160,107,.5); color: #fff;
+    background: linear-gradient(150deg, var(--accent), var(--accent-press));
+    display: grid; place-items: center; box-shadow: 0 6px 14px rgba(20,24,31,.35); color: var(--ink);
   }
   .mk-me { width: 18px; height: 18px; border-radius: 50%; background: #2E7DF6; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(46,125,246,.22); }
   .mk-a { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 4px solid var(--ink); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
@@ -648,27 +656,27 @@
             </div>
             <div class="menu">
               <div class="mrow">
-                <div class="mi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/></svg></div>
+                <div class="mi"><i data-lucide="banknote" style="width:19px;height:19px"></i></div>
                 <div class="mt">Payment <div class="ms">Cash in manat (TMT)</div></div><span class="chev">›</span>
               </div>
               <div class="mrow" data-go="trip">
-                <div class="mi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
+                <div class="mi"><i data-lucide="history" style="width:19px;height:19px"></i></div>
                 <div class="mt">Trip history <div class="ms">142 trips</div></div><span class="chev">›</span>
               </div>
               <div class="mrow" data-go="picker">
-                <div class="mi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12Z"/></svg></div>
+                <div class="mi"><i data-lucide="map-pin" style="width:19px;height:19px"></i></div>
                 <div class="mt">Saved places <div class="ms">Home · Work</div></div><span class="chev">›</span>
               </div>
               <div class="mrow">
-                <div class="mi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 13.6H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 7a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10.4 3H11a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2 2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-1.2 2.9Z"/></svg></div>
+                <div class="mi"><i data-lucide="settings" style="width:19px;height:19px"></i></div>
                 <div class="mt">Settings <div class="ms">Language · Aşgabat</div></div><span class="chev">›</span>
               </div>
               <div class="mrow">
-                <div class="mi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 3.5M12 17h.01"/></svg></div>
+                <div class="mi"><i data-lucide="life-buoy" style="width:19px;height:19px"></i></div>
                 <div class="mt">Help &amp; support</div><span class="chev">›</span>
               </div>
               <div class="mrow danger" data-go="login">
-                <div class="mi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 12H4M9 8l-4 4 4 4M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/></svg></div>
+                <div class="mi"><i data-lucide="log-out" style="width:19px;height:19px"></i></div>
                 <div class="mt">Log out</div>
               </div>
             </div>
