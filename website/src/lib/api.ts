@@ -77,13 +77,22 @@ export interface RideResponse {
   status: string;
 }
 
-/** Creates a ride on the backend — it appears in the shared admin dashboard. */
-export async function createRide(pickup: GeoPoint, dropoff: GeoPoint): Promise<RideResponse> {
+/**
+ * Creates a ride on the backend — it appears in the shared admin dashboard.
+ * Pass `scheduledAt` (ISO instant) to book it for later (backend keeps it
+ * SCHEDULED until due, then dispatches automatically).
+ */
+export async function createRide(
+  pickup: GeoPoint,
+  dropoff: GeoPoint,
+  scheduledAt?: string,
+): Promise<RideResponse> {
   return post<RideResponse>(
     "/rides",
     {
       pickup: { lat: pickup.lat, lng: pickup.lng },
       dropoff: { lat: dropoff.lat, lng: dropoff.lng },
+      ...(scheduledAt ? { scheduledAt } : {}),
     },
     true,
   );
