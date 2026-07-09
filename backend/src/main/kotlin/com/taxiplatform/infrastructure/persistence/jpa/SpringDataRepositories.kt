@@ -23,6 +23,7 @@ interface SpringDataRideRepository : JpaRepository<RideEntity, UUID> {
 	fun countByStatus(status: RideStatusEntity): Long
 	fun findAllByOrderByRequestedAtDesc(pageable: Pageable): List<RideEntity>
 	fun findByStatusOrderByRequestedAtDesc(status: RideStatusEntity, pageable: Pageable): List<RideEntity>
+	fun findByStatusAndScheduledAtLessThanEqual(status: RideStatusEntity, ts: Instant): List<RideEntity>
 }
 
 interface SpringDataRideOfferRepository : JpaRepository<RideOfferEntity, UUID> {
