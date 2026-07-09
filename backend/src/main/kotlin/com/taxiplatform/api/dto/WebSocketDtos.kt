@@ -15,3 +15,10 @@ data class RideStatusMessage(
 	val status: String,
 	val driverId: UUID?,
 )
+
+data class RideLocationMessage(
+	val rideId: UUID,
+	val driverId: UUID,
+	val lat: Double,
+	val lng: Double,
+)
