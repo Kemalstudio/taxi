@@ -6,6 +6,7 @@ import java.util.UUID
 enum class Role {
 	PASSENGER,
 	DRIVER,
+	ADMIN,
 }
 
 data class User(
