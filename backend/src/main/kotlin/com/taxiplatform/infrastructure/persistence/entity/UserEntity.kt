@@ -37,5 +37,8 @@ class UserEntity(
 enum class RoleEntity {
 	PASSENGER,
 	DRIVER,
+	OPERATOR,
+	DISPATCHER,
 	ADMIN,
+	SUPER_ADMIN,
 }
