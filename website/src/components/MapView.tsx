@@ -16,6 +16,8 @@ const OSM_STYLE: StyleSpecification = {
         "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
       ],
       tileSize: 256,
+      minzoom: 0,
+      maxzoom: 18,
       attribution: "© OpenStreetMap",
     },
   },
@@ -42,11 +44,13 @@ interface Props {
   to: GeoPoint | null;
   stops: GeoPoint[];
   route: RouteResult | null;
+  me: GeoPoint | null;
 }
 
-export function MapView({ mapRef, from, to, stops, route }: Props) {
+export function MapView({ mapRef, from, to, stops, route, me }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
+  const meMarker = useRef<maplibregl.Marker | null>(null);
   const loaded = useRef(false);
 
   // init once
@@ -58,6 +62,9 @@ export function MapView({ mapRef, from, to, stops, route }: Props) {
       center: ASHGABAT,
       zoom: 12.5,
       pitch: 0,
+      maxZoom: 18,
+      maxPitch: 60,
+      fadeDuration: 0,
       attributionControl: { compact: true },
     });
     map.on("load", () => {
@@ -89,6 +96,19 @@ export function MapView({ mapRef, from, to, stops, route }: Props) {
     stops.forEach((s) => markers.current.push(new maplibregl.Marker({ element: el("mk-stop") }).setLngLat([s.lng, s.lat]).addTo(map)));
     if (to) markers.current.push(new maplibregl.Marker({ element: pinEl(), anchor: "bottom" }).setLngLat([to.lng, to.lat]).addTo(map));
   }, [mapRef, from, to, stops]);
+
+  // "you are here" marker
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (meMarker.current) {
+      meMarker.current.remove();
+      meMarker.current = null;
+    }
+    if (me) {
+      meMarker.current = new maplibregl.Marker({ element: el("mk-me") }).setLngLat([me.lng, me.lat]).addTo(map);
+    }
+  }, [mapRef, me]);
 
   // route line + fit
   useEffect(() => {
