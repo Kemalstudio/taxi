@@ -20,3 +20,13 @@ createRoot(document.getElementById("root")!).render(
     </ThemeProvider>
   </StrictMode>,
 );
+
+// Offline support (PWA). Registered only in a production build so it never
+// interferes with Vite's dev HMR — test offline via `npm run build && npm run preview`.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      /* offline support is best-effort */
+    });
+  });
+}
