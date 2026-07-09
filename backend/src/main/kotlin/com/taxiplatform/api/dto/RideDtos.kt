@@ -17,6 +17,8 @@ data class GeoPointRequest(
 data class RequestRideRequest(
 	val pickup: GeoPointRequest,
 	val dropoff: GeoPointRequest,
+	/** Optional ISO-8601 instant to book the ride for later. */
+	val scheduledAt: Instant? = null,
 )
 
 data class CancelRideRequest(
@@ -31,6 +33,7 @@ data class RideResponse(
 	val dropoff: GeoPointDto,
 	val status: String,
 	val requestedAt: Instant,
+	val scheduledAt: Instant?,
 	val acceptedAt: Instant?,
 	val arrivedAt: Instant?,
 	val startedAt: Instant?,
@@ -47,6 +50,7 @@ data class RideResponse(
 			dropoff = GeoPointDto(ride.dropoff.lat, ride.dropoff.lng),
 			status = ride.status.name,
 			requestedAt = ride.requestedAt,
+			scheduledAt = ride.scheduledAt,
 			acceptedAt = ride.acceptedAt,
 			arrivedAt = ride.arrivedAt,
 			startedAt = ride.startedAt,
