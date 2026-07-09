@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type L from "leaflet";
+import type maplibregl from "maplibre-gl";
 import { TopNav } from "./components/TopNav";
 import { PromoCards, Footer } from "./components/PromoCards";
 import { MapView } from "./components/MapView";
@@ -9,14 +9,20 @@ import { SavedGrid } from "./components/SavedGrid";
 import { OptionsCard, type OptionsState } from "./components/OptionsCard";
 import { ScheduleCard } from "./components/ScheduleCard";
 import { OrderModal, type OrderSummary } from "./components/OrderModal";
+import { LoginModal, type Session } from "./components/LoginModal";
 import { DEFAULT_FROM } from "./data/places";
 import { priceFor, routeThrough } from "./lib/routing";
+import { useI18n } from "./i18n";
 import type { AddressField, GeoPoint, RideMode, RouteResult, StopRow } from "./types";
 
 const emptyField = (): AddressField => ({ text: "", point: null });
 
 export default function App() {
-  const mapRef = useRef<L.Map | null>(null);
+  const { t } = useI18n();
+  const mapRef = useRef<maplibregl.Map | null>(null);
+
+  const [session, setSession] = useState<Session | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
 
   const [from, setFrom] = useState<AddressField>({
     text: DEFAULT_FROM.label,
@@ -41,7 +47,7 @@ export default function App() {
 
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [summary, setSummary] = useState<OrderSummary | null>(null);
-  const [hint, setHint] = useState("Введите адрес «Откуда» и «Куда» — маршрут построится по картам");
+  const [hintKey, setHintKey] = useState("hint.default");
 
   // ---- address editing ----
   const setText = (target: FieldTarget, text: string) => {
@@ -65,6 +71,29 @@ export default function App() {
   const removeStop = (id: number) => setStops((rows) => rows.filter((r) => r.id !== id));
   const pickSaved = (point: GeoPoint) => setTo({ text: point.label, point });
 
+  // ---- GPS "my location" ----
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      setHintKey("hint.gpsErr");
+      return;
+    }
+    setHintKey("hint.gps");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const point: GeoPoint = {
+          label: t("addr.gps"),
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        setFrom({ text: point.label, point });
+        mapRef.current?.flyTo({ center: [point.lng, point.lat], zoom: 15 });
+        setHintKey("hint.gpsOk");
+      },
+      () => setHintKey("hint.gpsErr"),
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  };
+
   // ---- routing ----
   const orderedPoints = useMemo<GeoPoint[]>(() => {
     const pts: GeoPoint[] = [];
@@ -80,11 +109,11 @@ export default function App() {
       return;
     }
     let cancelled = false;
-    setHint("Строим маршрут по картам…");
+    setHintKey("hint.routing");
     routeThrough(orderedPoints).then((r) => {
       if (cancelled) return;
       setRoute(r);
-      setHint("Оплата наличными водителю (манат)");
+      setHintKey("hint.cash");
     });
     return () => {
       cancelled = true;
@@ -95,32 +124,28 @@ export default function App() {
   const price = route ? priceFor(route.km) : null;
   const canOrder = Boolean(from.point && to.point && route);
   const fareText = price != null ? `${price} TMT` : "— TMT";
-  const distText = route ? `<b>${route.km.toFixed(1)}</b> км` : "—";
-  const timeText = route ? `≈ <b>${Math.round(route.min)}</b> мин` : "";
+  const distText = route ? `<b>${route.km.toFixed(1)}</b> ${t("sch.km")}` : "—";
+  const timeText = route ? `≈ <b>${Math.round(route.min)}</b> ${t("sch.min")}` : "";
   const orderLabel =
-    price != null
-      ? mode === "later"
-        ? `Забронировать · ${price} TMT`
-        : `Заказать · ${price} TMT`
-      : "";
+    price != null ? `${mode === "later" ? t("sch.book") : t("sch.order")} · ${price} TMT` : "";
 
   const submit = () => {
     if (!canOrder || price == null) return;
     const rows: [string, string][] = [
-      ["Маршрут", `${from.point!.label} → ${to.point!.label}`],
+      [t("m.route"), `${from.point!.label} → ${to.point!.label}`],
     ];
     const stopLabels = stops.filter((s) => s.field.point).map((s) => s.field.point!.label);
-    if (stopLabels.length) rows.push(["Остановки", stopLabels.join(", ")]);
-    rows.push(["Стоимость", `${price} TMT · наличными`]);
-    if (options.comment.trim()) rows.push(["Комментарий", options.comment.trim()]);
+    if (stopLabels.length) rows.push([t("m.stops"), stopLabels.join(", ")]);
+    rows.push([t("m.price"), `${price} TMT · ${t("m.cash")}`]);
+    if (options.comment.trim()) rows.push([t("m.comment"), options.comment.trim()]);
     if (options.otherOpen && options.otherName.trim()) {
-      rows.push(["Пассажир", `${options.otherName.trim()} · +993 ${options.otherPhone.trim() || "—"}`]);
+      rows.push([t("m.passenger"), `${options.otherName.trim()} · +993 ${options.otherPhone.trim() || "—"}`]);
     }
     if (mode === "later") {
-      rows.push(["Ко времени", `${date} ${time}`]);
-      setSummary({ title: "Поездка забронирована", subtitle: "Мы подадим машину к указанному времени.", rows });
+      rows.push([t("m.atTime"), `${date} ${time}`]);
+      setSummary({ title: t("m.bookTitle"), subtitle: t("m.bookSub"), rows });
     } else {
-      setSummary({ title: "Заказ принят", subtitle: "Ищем ближайшего водителя…", rows });
+      setSummary({ title: t("m.orderTitle"), subtitle: t("m.orderSub"), rows });
     }
   };
 
@@ -134,7 +159,7 @@ export default function App() {
         route={route}
       />
 
-      <TopNav />
+      <TopNav session={session} onSignIn={() => setAuthOpen(true)} />
       <PromoCards />
       <ZoomControls mapRef={mapRef} />
 
@@ -147,6 +172,7 @@ export default function App() {
           onPick={pick}
           onAddStop={addStop}
           onRemoveStop={removeStop}
+          onGps={useMyLocation}
         />
         <SavedGrid onPick={pickSaved} />
         <OptionsCard value={options} onChange={(patch) => setOptions((o) => ({ ...o, ...patch }))} />
@@ -162,7 +188,7 @@ export default function App() {
           timeText={timeText}
           canOrder={canOrder}
           orderLabel={orderLabel}
-          hint={hint}
+          hint={t(hintKey)}
           onOrder={submit}
         />
       </div>
@@ -170,6 +196,15 @@ export default function App() {
       <Footer />
 
       {summary && <OrderModal summary={summary} onClose={() => setSummary(null)} />}
+      {authOpen && (
+        <LoginModal
+          onClose={() => setAuthOpen(false)}
+          onAuth={(s) => {
+            setSession(s);
+            setAuthOpen(false);
+          }}
+        />
+      )}
     </>
   );
 }
