@@ -37,4 +37,5 @@ class UserEntity(
 enum class RoleEntity {
 	PASSENGER,
 	DRIVER,
+	ADMIN,
 }
