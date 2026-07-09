@@ -12,6 +12,7 @@ import { OrderModal, type OrderSummary } from "./components/OrderModal";
 import { LoginModal, type Session } from "./components/LoginModal";
 import { DEFAULT_FROM } from "./data/places";
 import { priceFor, routeThrough } from "./lib/routing";
+import { createRide, token as apiToken, ApiError, NetworkError } from "./lib/api";
 import { useI18n } from "./i18n";
 import type { AddressField, GeoPoint, RideMode, RouteResult, StopRow } from "./types";
 
