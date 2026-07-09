@@ -53,12 +53,14 @@ interface Props {
   stops: GeoPoint[];
   route: RouteResult | null;
   me: GeoPoint | null;
+  driver: GeoPoint | null;
 }
 
-export function MapView({ mapRef, from, to, stops, route, me }: Props) {
+export function MapView({ mapRef, from, to, stops, route, me, driver }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
   const meMarker = useRef<maplibregl.Marker | null>(null);
+  const driverMarker = useRef<maplibregl.Marker | null>(null);
   const loaded = useRef(false);
 
   // init once
@@ -117,6 +119,22 @@ export function MapView({ mapRef, from, to, stops, route, me }: Props) {
       meMarker.current = new maplibregl.Marker({ element: el("mk-me") }).setLngLat([me.lng, me.lat]).addTo(map);
     }
   }, [mapRef, me]);
+
+  // live driver marker — reuse one marker and just move it (smooth via CSS transition)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!driver) {
+      driverMarker.current?.remove();
+      driverMarker.current = null;
+      return;
+    }
+    if (!driverMarker.current) {
+      driverMarker.current = new maplibregl.Marker({ element: driverEl() }).setLngLat([driver.lng, driver.lat]).addTo(map);
+    } else {
+      driverMarker.current.setLngLat([driver.lng, driver.lat]);
+    }
+  }, [mapRef, driver]);
 
   // route line + fit
   useEffect(() => {
