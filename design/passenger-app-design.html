@@ -1,0 +1,737 @@
+<title>Taxi Platform — Passenger App Design</title>
+<style>
+  :root {
+    --amber: #F5A623;
+    --amber-deep: #E8931A;
+    --amber-soft: #FDEACB;
+    --ink: #14181F;
+    --slate: #3A4150;
+    --mist: #8B93A7;
+    --line: #ECEAE4;
+    --green: #22B573;
+    --green-deep: #14181F;
+    --red: #FF5A5F;
+
+    /* map palette */
+    --map-land: #E9ECE6;
+    --map-road: #FBFBF9;
+    --map-road-major: #F2E7CE;
+    --map-park: #D2E2CE;
+    --map-water: #C6DBE8;
+
+    /* gallery ground (theme-aware) */
+    --ground: #F1EEE8;
+    --ground-2: #E7E2D8;
+    --panel: #FFFFFF;
+    --panel-line: #E4E0D6;
+    --title: #17110A;
+    --subtitle: #6A6152;
+    --tag: #8A806E;
+
+    --phone-shell: #0C0E13;
+    --screen: #FFFFFF;
+    --screen-2: #F5F6F4;
+    --text: #14181F;
+    --text-2: #6C7482;
+    --card-line: #EEEFF1;
+
+    --radius: 26px;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+            "Segoe UI", "Inter", system-ui, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0D0F15;
+      --ground-2: #12141C;
+      --panel: #161922;
+      --panel-line: #242836;
+      --title: #F6F1E9;
+      --subtitle: #9AA0AD;
+      --tag: #7C8497;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0D0F15;
+    --ground-2: #12141C;
+    --panel: #161922;
+    --panel-line: #242836;
+    --title: #F6F1E9;
+    --subtitle: #9AA0AD;
+    --tag: #7C8497;
+  }
+  :root[data-theme="light"] {
+    --ground: #F1EEE8;
+    --ground-2: #E7E2D8;
+    --panel: #FFFFFF;
+    --panel-line: #E4E0D6;
+    --title: #17110A;
+    --subtitle: #6A6152;
+    --tag: #8A806E;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--title);
+    background:
+      radial-gradient(1200px 700px at 12% -8%, rgba(245,166,35,0.16), transparent 60%),
+      radial-gradient(900px 600px at 100% 0%, rgba(34,181,115,0.08), transparent 55%),
+      var(--ground);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 56px 24px 80px; }
+
+  /* ---------- header ---------- */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 44px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 44px; height: 44px; border-radius: 13px;
+    background: linear-gradient(150deg, var(--amber), var(--amber-deep));
+    display: grid; place-items: center; color: #14181F; font-weight: 800; font-size: 20px;
+    box-shadow: 0 8px 22px rgba(245,166,35,0.35);
+  }
+  .brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+  .brand-sub { font-size: 12px; color: var(--subtitle); }
+
+  .theme-toggle {
+    border: 1px solid var(--panel-line); background: var(--panel);
+    color: var(--subtitle); border-radius: 999px; padding: 9px 16px; font-size: 13px;
+    font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    transition: border-color .2s, color .2s;
+  }
+  .theme-toggle:hover { border-color: var(--amber); color: var(--title); }
+  .theme-toggle:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .hero { max-width: 760px; margin-bottom: 14px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--amber-deep); margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 26px; height: 2px; background: var(--amber); border-radius: 2px; }
+  h1 {
+    font-size: clamp(34px, 5vw, 56px); line-height: 1.02; letter-spacing: -0.03em;
+    margin: 0 0 18px; font-weight: 800; text-wrap: balance;
+  }
+  h1 .accent { color: var(--amber-deep); }
+  .lede { font-size: clamp(16px, 1.7vw, 19px); line-height: 1.55; color: var(--subtitle); margin: 0; max-width: 60ch; }
+
+  .flow-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+  .flow-tag {
+    font-size: 12.5px; color: var(--tag); border: 1px solid var(--panel-line);
+    background: color-mix(in srgb, var(--panel) 60%, transparent);
+    padding: 7px 13px; border-radius: 999px; display: inline-flex; align-items: center; gap: 7px;
+  }
+  .flow-tag b { color: var(--title); font-weight: 600; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+
+  /* ---------- phone rail ---------- */
+  .rail-label { display:flex; align-items:baseline; justify-content:space-between; margin: 64px 0 22px; }
+  .rail-label h2 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+  .rail-label span { font-size: 13px; color: var(--subtitle); }
+
+  .rail {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 300px; gap: 30px;
+    overflow-x: auto; padding: 8px 4px 30px; scroll-snap-type: x mandatory;
+  }
+  .rail::-webkit-scrollbar { height: 8px; }
+  .rail::-webkit-scrollbar-thumb { background: var(--panel-line); border-radius: 8px; }
+  .phone-cell { scroll-snap-align: start; display: flex; flex-direction: column; gap: 16px; }
+  .caption { padding: 0 6px; }
+  .caption .step {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--amber-deep);
+  }
+  .caption .title-c { font-size: 15px; font-weight: 650; margin: 4px 0 3px; color: var(--title); }
+  .caption .desc { font-size: 13px; color: var(--subtitle); line-height: 1.45; }
+
+  /* ---------- phone frame ---------- */
+  .phone {
+    width: 300px; height: 620px; border-radius: 46px; background: var(--phone-shell);
+    padding: 11px; box-shadow:
+      0 2px 4px rgba(0,0,0,.4),
+      0 30px 60px -20px rgba(0,0,0,.55),
+      inset 0 0 0 2px rgba(255,255,255,.06);
+    position: relative; flex-shrink: 0;
+  }
+  .screen {
+    position: relative; width: 100%; height: 100%; border-radius: 36px; overflow: hidden;
+    background: var(--screen); display: flex; flex-direction: column;
+  }
+  .island {
+    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+    width: 96px; height: 27px; background: #05070B; border-radius: 999px; z-index: 40;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 48px; z-index: 30;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 26px 0; font-size: 13px; font-weight: 600; color: var(--sb, #14181F);
+    pointer-events: none;
+  }
+  .statusbar .glyphs { display: flex; align-items: center; gap: 6px; }
+  .statusbar .glyphs svg { display: block; }
+
+  /* ---------- map ---------- */
+  .map { position: absolute; inset: 0; background: var(--map-land); }
+  .map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .taxi-pin {
+    position: absolute; width: 26px; height: 26px; border-radius: 8px;
+    background: linear-gradient(150deg, var(--amber), var(--amber-deep));
+    display: grid; place-items: center; box-shadow: 0 6px 14px rgba(245,166,35,.45);
+    transform: translate(-50%, -50%);
+  }
+  .taxi-pin svg { position: static; width: 15px; height: 15px; }
+  .me-dot {
+    position: absolute; width: 18px; height: 18px; border-radius: 50%;
+    background: #2E7DF6; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(46,125,246,.22);
+    transform: translate(-50%, -50%);
+  }
+  .pin-flag {
+    position: absolute; transform: translate(-50%, -100%);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .pin-flag .bubble {
+    background: #14181F; color: #fff; font-size: 11px; font-weight: 600;
+    padding: 5px 9px; border-radius: 8px; white-space: nowrap;
+  }
+  .pin-flag .stem { width: 2px; height: 10px; background: #14181F; }
+  .pin-flag .base { width: 10px; height: 10px; border-radius: 50%; background: #14181F; margin-top: -4px; border: 2px solid #fff; }
+
+  /* generic floating controls */
+  .fab {
+    position: absolute; width: 40px; height: 40px; border-radius: 50%; background: #fff;
+    display: grid; place-items: center; box-shadow: 0 6px 16px rgba(20,24,31,.16); z-index: 20;
+    color: var(--slate);
+  }
+
+  /* ---------- bottom sheet ---------- */
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 25;
+    background: var(--screen); border-radius: 26px 26px 36px 36px;
+    padding: 14px 18px calc(18px + env(safe-area-inset-bottom));
+    box-shadow: 0 -12px 40px rgba(20,24,31,.14);
+  }
+  .grabber { width: 40px; height: 4px; border-radius: 4px; background: #E2E4E8; margin: 0 auto 14px; }
+
+  /* home search */
+  .search-field {
+    display: flex; align-items: center; gap: 10px; background: var(--screen-2);
+    border-radius: 15px; padding: 13px 15px; color: var(--text-2); font-size: 14.5px; font-weight: 500;
+    border: 1px solid var(--card-line);
+  }
+  .search-field .lead { width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--amber); display: grid; place-items: center; }
+  .search-field .lead::after { content:""; width:6px; height:6px; border-radius:50%; background: var(--amber); }
+
+  .saved-list { display: flex; flex-direction: column; margin-top: 10px; }
+  .saved-row { display: flex; align-items: center; gap: 13px; padding: 11px 4px; border-bottom: 1px solid var(--card-line); }
+  .saved-row:last-child { border-bottom: 0; }
+  .saved-ic {
+    width: 38px; height: 38px; border-radius: 12px; background: var(--amber-soft);
+    display: grid; place-items: center; color: var(--amber-deep); flex-shrink: 0;
+  }
+  .saved-meta { flex: 1; min-width: 0; }
+  .saved-meta .k { font-size: 14px; font-weight: 600; color: var(--text); }
+  .saved-meta .v { font-size: 12.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .saved-row .chev { color: #C4C9D1; }
+
+  .seg { display: flex; gap: 8px; margin-top: 4px; margin-bottom: 12px; }
+  .seg .pill {
+    flex: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 9px; border-radius: 12px;
+    color: var(--text-2); background: transparent;
+  }
+  .seg .pill.on { background: var(--amber); color: #14181F; }
+
+  /* car options */
+  .car-row {
+    display: flex; align-items: center; gap: 13px; padding: 12px; border-radius: 16px;
+    border: 1.5px solid var(--card-line); margin-bottom: 10px; background: var(--screen);
+  }
+  .car-row.sel { border-color: var(--amber); background: #FFFAF0; }
+  .car-ic { width: 46px; height: 34px; display: grid; place-items: center; flex-shrink: 0; }
+  .car-meta { flex: 1; }
+  .car-meta .n { font-size: 14.5px; font-weight: 650; color: var(--text); display:flex; align-items:center; gap:6px; }
+  .car-meta .badge { font-size: 10px; font-weight: 700; color: var(--green); background: rgba(34,181,115,.14); padding: 2px 6px; border-radius: 6px; }
+  .car-meta .s { font-size: 12px; color: var(--text-2); margin-top: 1px; }
+  .car-price { text-align: right; }
+  .car-price .now { font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .car-price .was { font-size: 11.5px; color: #B7BCC5; text-decoration: line-through; font-variant-numeric: tabular-nums; }
+
+  .pay-row {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px;
+    background: var(--screen-2); margin: 6px 0 12px; font-size: 13.5px; font-weight: 500; color: var(--text);
+  }
+  .pay-row .chev { margin-left: auto; color: #B7BCC5; }
+  .mc { display: flex; }
+  .mc i { width: 15px; height: 15px; border-radius: 50%; display: block; }
+  .mc i:first-child { background: #EB5C2E; }
+  .mc i:last-child { background: #F5A623; margin-left: -7px; mix-blend-mode: multiply; }
+
+  .cta {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: linear-gradient(150deg, var(--amber), var(--amber-deep)); color: #14181F;
+    font-size: 15.5px; font-weight: 700; padding: 16px; border-radius: 17px; border: none;
+    width: 100%; font-family: inherit; box-shadow: 0 10px 24px rgba(245,166,35,.35);
+  }
+  .cta.dark { background: #14181F; color: #fff; box-shadow: none; }
+  .cta.ghost { background: transparent; color: var(--red); box-shadow: none; border: 1.5px solid rgba(255,90,95,.35); }
+
+  /* driver arriving header */
+  .arrive-head {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 26; padding: 54px 20px 20px;
+    background: var(--green); color: #fff;
+  }
+  .arrive-head .lbl { font-size: 13px; opacity: .9; }
+  .arrive-head .big { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; margin-top: 2px; }
+  .progress { height: 4px; border-radius: 4px; background: rgba(255,255,255,.3); margin-top: 12px; overflow: hidden; }
+  .progress i { display: block; height: 100%; width: 62%; background: #fff; border-radius: 4px; }
+
+  .driver-card { display: flex; flex-direction: column; gap: 14px; }
+  .driver-top { display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg,#F5A623,#EB5C2E); display:grid; place-items:center; color:#fff; font-weight:700; }
+  .driver-name { flex: 1; }
+  .driver-name .n { font-size: 15px; font-weight: 700; color: var(--text); }
+  .driver-name .r { font-size: 12.5px; color: var(--text-2); display:flex; align-items:center; gap:4px; }
+  .star { color: var(--amber); }
+  .circle-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--green); color: #fff; }
+  .circle-btn.ghost { background: var(--screen-2); color: var(--slate); }
+  .plate {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--screen-2); border-radius: 14px; padding: 12px 14px;
+  }
+  .plate .car-name { font-size: 12.5px; color: var(--text-2); }
+  .plate .car-model { font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+  .plate svg { color: var(--slate); }
+  .route-line { display: flex; flex-direction: column; gap: 2px; }
+  .route-item { display: flex; align-items: center; gap: 11px; padding: 7px 0; }
+  .route-item .g { width: 20px; display: grid; place-items: center; }
+  .route-item .g .o { width: 9px; height: 9px; border-radius: 50%; border: 2.5px solid #14181F; }
+  .route-item .g .sq { width: 9px; height: 9px; border-radius: 2px; background: var(--amber); }
+  .route-item .g .rl { width: 2px; height: 16px; background: #DADDE3; }
+  .route-item .t { font-size: 13.5px; color: var(--text); }
+
+  /* trip in progress */
+  .trip-sheet { display: flex; flex-direction: column; gap: 14px; }
+  .trip-stats { display: flex; align-items: center; gap: 14px; }
+  .timer {
+    width: 78px; height: 78px; border-radius: 50%; flex-shrink: 0;
+    background:
+      radial-gradient(closest-side, var(--screen) 74%, transparent 75% 100%),
+      conic-gradient(var(--green) 68%, #E9EBEE 0);
+    display: grid; place-items: center; text-align: center;
+  }
+  .timer .m { font-size: 20px; font-weight: 800; color: var(--text); line-height: 1; }
+  .timer .u { font-size: 10px; color: var(--text-2); }
+  .trip-mid { flex: 1; }
+  .trip-mid .km { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .trip-mid .share { font-size: 13.5px; font-weight: 600; color: var(--text); display:flex; align-items:center; gap:7px; margin-top:6px; }
+  .sos {
+    width: 62px; height: 62px; border-radius: 50%; background: var(--red); color: #fff;
+    display: grid; place-items: center; text-align: center; font-size: 13px; font-weight: 800; flex-shrink: 0;
+    box-shadow: 0 8px 20px rgba(255,90,95,.4);
+  }
+
+  /* arrived / rating */
+  .arrived-screen { background: #14181F; height: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 40px 26px; text-align: center; color: #fff; gap: 4px; }
+  .check {
+    width: 84px; height: 84px; border-radius: 50%; background: var(--green);
+    display: grid; place-items: center; margin-bottom: 18px; box-shadow: 0 12px 30px rgba(34,181,115,.4);
+  }
+  .arrived-screen h3 { font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
+  .arrived-screen p { font-size: 14px; color: #99A0AD; margin: 6px 0 22px; }
+  .stars { display: flex; gap: 8px; margin-bottom: 26px; }
+  .stars svg { color: var(--amber); }
+  .stars svg.off { color: #333A48; }
+  .comment {
+    width: 100%; background: #1E222C; border: 1px solid #2A2F3B; border-radius: 14px;
+    padding: 14px; color: #6C7482; font-size: 13.5px; text-align: left; margin-bottom: 16px;
+  }
+
+  /* ---------- design tokens footer ---------- */
+  .tokens { margin-top: 76px; border-top: 1px solid var(--panel-line); padding-top: 40px; }
+  .tokens h2 { font-size: 15px; font-weight: 700; margin: 0 0 22px; }
+  .token-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+  .token-card { background: color-mix(in srgb, var(--panel) 55%, transparent); border: 1px solid var(--panel-line);
+    border-radius: 18px; padding: 18px; }
+  .token-card .label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tag); margin-bottom: 14px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+  .swatch { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .swatch .chip { width: 44px; height: 44px; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+  .swatch .hex { font-size: 10.5px; color: var(--subtitle); font-variant-numeric: tabular-nums; }
+  .type-spec { display: flex; flex-direction: column; gap: 14px; }
+  .type-spec .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--panel-line); padding-bottom: 10px; }
+  .type-spec .row:last-child { border-bottom: 0; }
+  .type-spec .samp { color: var(--title); }
+  .type-spec .meta { font-size: 11px; color: var(--subtitle); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .principles { display: flex; flex-direction: column; gap: 12px; }
+  .principle { display: flex; gap: 11px; font-size: 13px; color: var(--subtitle); line-height: 1.45; }
+  .principle .k { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); margin-top: 6px; flex-shrink: 0; }
+  .principle b { color: var(--title); font-weight: 600; }
+
+  .foot { margin-top: 50px; font-size: 12.5px; color: var(--subtitle); text-align: center; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 36px 16px 60px; }
+    .rail { grid-auto-columns: 84vw; }
+    .phone { width: 84vw; max-width: 320px; height: auto; aspect-ratio: 300 / 620; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">T</div>
+      <div>
+        <div class="brand-name">Taxi Platform</div>
+        <div class="brand-sub">Passenger App · Design System</div>
+      </div>
+    </div>
+    <button class="theme-toggle" id="themeBtn" aria-label="Toggle colour theme">
+      <span id="themeIcon">◐</span> <span id="themeLabel">Theme</span>
+    </button>
+  </div>
+
+  <header class="hero">
+    <div class="eyebrow">Rider Experience</div>
+    <h1>A ride you can <span class="accent">feel</span> before the car arrives.</h1>
+    <p class="lede">The full passenger journey — from picking a destination to rating the trip —
+      designed as one calm, confident system. Warm amber for every action, quiet neutrals for
+      everything else, and maps that stay out of the way until they matter.</p>
+    <div class="flow-tags">
+      <span class="flow-tag"><span class="dot"></span><b>Set destination</b></span>
+      <span class="flow-tag"><span class="dot"></span><b>Choose your car</b></span>
+      <span class="flow-tag"><span class="dot"></span><b>Track the driver</b></span>
+      <span class="flow-tag"><span class="dot"></span><b>Safety on-trip</b></span>
+      <span class="flow-tag"><span class="dot"></span><b>Arrive &amp; rate</b></span>
+    </div>
+  </header>
+
+  <div class="rail-label">
+    <h2>The ride, screen by screen</h2>
+    <span>Scroll horizontally →</span>
+  </div>
+
+  <div class="rail" role="list">
+
+    <!-- 1 · HOME -->
+    <div class="phone-cell" role="listitem">
+      <div class="phone">
+        <div class="screen" style="--sb:#14181F;">
+          <div class="island"></div>
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="glyphs">
+              <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M8 2.2c2.1 0 4 .8 5.4 2.1l1.2-1.3A9.4 9.4 0 0 0 8 .4 9.4 9.4 0 0 0 1.4 3l1.2 1.3A7.6 7.6 0 0 1 8 2.2Zm0 3.1c1.2 0 2.3.5 3.1 1.2l1.2-1.3A6 6 0 0 0 8 3.3a6 6 0 0 0-4.3 1.9l1.2 1.3A4.3 4.3 0 0 1 8 5.3Zm0 3 2.1 2.2L8 10.6l-.1-.1Z"/></svg>
+              <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="currentColor" stroke-opacity=".4"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="currentColor"/><rect x="22.5" y="4" width="1.6" height="4" rx=".8" fill="currentColor" fill-opacity=".5"/></svg>
+            </span>
+          </div>
+
+          <div class="map">
+            <svg viewBox="0 0 300 620" preserveAspectRatio="xMidYMid slice">
+              <rect width="300" height="620" fill="var(--map-land)"/>
+              <path d="M-20 130 H320 M-20 300 H320 M-20 470 H320" stroke="var(--map-road)" stroke-width="26"/>
+              <path d="M70 -20 V640 M170 -20 V640 M250 -20 V640" stroke="var(--map-road)" stroke-width="22"/>
+              <path d="M-20 300 H320" stroke="var(--map-road-major)" stroke-width="30"/>
+              <path d="M170 -20 V640" stroke="var(--map-road-major)" stroke-width="26"/>
+              <rect x="14" y="150" width="42" height="120" rx="10" fill="var(--map-park)"/>
+              <rect x="196" y="340" width="88" height="96" rx="12" fill="var(--map-park)"/>
+              <path d="M-20 540 q160 40 340 -10 V640 H-20 Z" fill="var(--map-water)"/>
+            </svg>
+            <div class="taxi-pin" style="left:26%; top:24%"><svg viewBox="0 0 24 24" fill="#14181F"><path d="M5 11l1.5-4A2 2 0 0 1 8.4 6h7.2a2 2 0 0 1 1.9 1.3L19 11h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1v1a1 1 0 0 1-2 0v-1H7v1a1 1 0 0 1-2 0v-1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h1Zm2.2-3 -.9 3h11.4l-.9-3H7.2Z"/></svg></div>
+            <div class="taxi-pin" style="left:62%; top:44%"><svg viewBox="0 0 24 24" fill="#14181F"><path d="M5 11l1.5-4A2 2 0 0 1 8.4 6h7.2a2 2 0 0 1 1.9 1.3L19 11h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1v1a1 1 0 0 1-2 0v-1H7v1a1 1 0 0 1-2 0v-1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h1Zm2.2-3 -.9 3h11.4l-.9-3H7.2Z"/></svg></div>
+            <div class="taxi-pin" style="left:44%; top:66%"><svg viewBox="0 0 24 24" fill="#14181F"><path d="M5 11l1.5-4A2 2 0 0 1 8.4 6h7.2a2 2 0 0 1 1.9 1.3L19 11h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1v1a1 1 0 0 1-2 0v-1H7v1a1 1 0 0 1-2 0v-1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h1Zm2.2-3 -.9 3h11.4l-.9-3H7.2Z"/></svg></div>
+            <div class="me-dot" style="left:47%; top:40%"></div>
+          </div>
+
+          <div class="fab" style="left:16px; top:56px; width:44px; height:44px;">
+            <svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 2h16M1 7h16M1 12h16"/></svg>
+          </div>
+          <div class="fab" style="right:16px; bottom:238px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="5"/></svg>
+          </div>
+
+          <div class="sheet">
+            <div class="grabber"></div>
+            <div class="search-field"><span class="lead"></span> Where to?</div>
+            <div class="saved-list">
+              <div class="saved-row">
+                <div class="saved-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></div>
+                <div class="saved-meta"><div class="k">Home</div><div class="v">Jl. Sudirman No. 45</div></div>
+                <span class="chev">›</span>
+              </div>
+              <div class="saved-row">
+                <div class="saved-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
+                <div class="saved-meta"><div class="k">Office</div><div class="v">Jl. Salemba Raya No. 8</div></div>
+                <span class="chev">›</span>
+              </div>
+              <div class="saved-row">
+                <div class="saved-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg></div>
+                <div class="saved-meta"><div class="k">School</div><div class="v">Jl. Diponegoro No. 22</div></div>
+                <span class="chev">›</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="step">01 · Home</div>
+        <div class="title-c">Where to?</div>
+        <div class="desc">Live cars on the map, one-tap saved places, your position always in view.</div>
+      </div>
+    </div>
+
+    <!-- 2 · CHOOSE CAR -->
+    <div class="phone-cell" role="listitem">
+      <div class="phone">
+        <div class="screen" style="--sb:#14181F;">
+          <div class="island"></div>
+          <div class="statusbar"><span>9:41</span><span class="glyphs">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="currentColor" stroke-opacity=".4"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="currentColor"/></svg>
+          </span></div>
+
+          <div class="map">
+            <svg viewBox="0 0 300 620" preserveAspectRatio="xMidYMid slice">
+              <rect width="300" height="620" fill="var(--map-land)"/>
+              <path d="M-20 120 H320 M-20 250 H320" stroke="var(--map-road)" stroke-width="22"/>
+              <path d="M90 -20 V400 M210 -20 V400" stroke="var(--map-road)" stroke-width="20"/>
+              <rect x="200" y="60" width="80" height="70" rx="12" fill="var(--map-park)"/>
+              <path d="M60 70 C60 70 120 90 130 160 S 210 250 230 300" fill="none" stroke="#14181F" stroke-width="4" stroke-linecap="round" stroke-dasharray="0.1 10" stroke-opacity=".85"/>
+              <path d="M60 70 C60 70 120 90 130 160 S 210 250 230 300" fill="none" stroke="var(--amber)" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <div class="pin-flag" style="left:20%; top:12%"><div class="bubble">169 E 106th St</div><div class="stem"></div><div class="base"></div></div>
+            <div class="taxi-pin" style="left:77%; top:49%"><svg viewBox="0 0 24 24" fill="#14181F"><path d="M5 11l1.5-4A2 2 0 0 1 8.4 6h7.2a2 2 0 0 1 1.9 1.3L19 11h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1v1a1 1 0 0 1-2 0v-1H7v1a1 1 0 0 1-2 0v-1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h1Zm2.2-3 -.9 3h11.4l-.9-3H7.2Z"/></svg></div>
+          </div>
+
+          <div class="sheet">
+            <div class="grabber"></div>
+            <div class="route-line" style="margin-bottom:10px;">
+              <div class="route-item"><span class="g"><span class="o"></span></span><span class="t">55 Lexington Ave</span></div>
+              <div class="route-item"><span class="g"><span class="sq"></span></span><span class="t">Tour Eiffel Park, Paris</span></div>
+            </div>
+            <div class="car-row sel">
+              <div class="car-ic"><svg width="44" height="26" viewBox="0 0 48 28" fill="#3A4150"><path d="M4 20l3-8a4 4 0 0 1 3.7-2.6h26.6A4 4 0 0 1 41 12l3 8v4a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2H11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4Z"/><rect x="11" y="12" width="26" height="6" rx="2" fill="#C6DBE8"/></svg></div>
+              <div class="car-meta"><div class="n">Standard <span class="badge">Recommended</span></div><div class="s">6 min away · 4 seats</div></div>
+              <div class="car-price"><div class="now">€ 9.99</div><div class="was">€ 12.90</div></div>
+            </div>
+            <div class="car-row">
+              <div class="car-ic"><svg width="44" height="26" viewBox="0 0 48 28" fill="#14181F"><path d="M4 20l3-8a4 4 0 0 1 3.7-2.6h26.6A4 4 0 0 1 41 12l3 8v4a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2H11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4Z"/><rect x="11" y="12" width="26" height="6" rx="2" fill="#5A6273"/></svg></div>
+              <div class="car-meta"><div class="n">Business</div><div class="s">10 min away · 4 seats</div></div>
+              <div class="car-price"><div class="now">€ 17.79</div></div>
+            </div>
+            <div class="car-row">
+              <div class="car-ic"><svg width="44" height="26" viewBox="0 0 48 28" fill="#8A6E2E"><path d="M4 20l3-8a4 4 0 0 1 3.7-2.6h26.6A4 4 0 0 1 41 12l3 8v4a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2H11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4Z"/><rect x="11" y="12" width="26" height="6" rx="2" fill="#F5A623"/></svg></div>
+              <div class="car-meta"><div class="n">Premium</div><div class="s">12 min away · 4 seats</div></div>
+              <div class="car-price"><div class="now">€ 24.50</div></div>
+            </div>
+            <div class="pay-row"><span class="mc"><i></i><i></i></span> Card ending 3359 <span class="chev">›</span></div>
+            <button class="cta">Book ride</button>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="step">02 · Choose</div>
+        <div class="title-c">Pick your car</div>
+        <div class="desc">Live pricing and ETA per tier, promo strike-through, payment one line away.</div>
+      </div>
+    </div>
+
+    <!-- 3 · DRIVER ARRIVING -->
+    <div class="phone-cell" role="listitem">
+      <div class="phone">
+        <div class="screen" style="--sb:#FFFFFF;">
+          <div class="island" style="background:#05070B;"></div>
+          <div class="arrive-head">
+            <div class="lbl">Your driver is arriving in</div>
+            <div class="big">3 mins</div>
+            <div class="progress"><i></i></div>
+          </div>
+          <div class="map" style="top:132px;">
+            <svg viewBox="0 0 300 500" preserveAspectRatio="xMidYMid slice">
+              <rect width="300" height="500" fill="var(--map-land)"/>
+              <path d="M-20 120 H320 M-20 300 H320" stroke="var(--map-road)" stroke-width="22"/>
+              <path d="M110 -20 V520 M220 -20 V520" stroke="var(--map-road)" stroke-width="20"/>
+              <path d="M150 60 C150 120 150 160 120 210 S 90 330 150 380" fill="none" stroke="var(--green)" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <div class="taxi-pin" style="left:50%; top:12%; background:#14181F; box-shadow:0 6px 14px rgba(0,0,0,.3)"><svg viewBox="0 0 24 24" fill="#fff"><path d="M5 11l1.5-4A2 2 0 0 1 8.4 6h7.2a2 2 0 0 1 1.9 1.3L19 11h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1v1a1 1 0 0 1-2 0v-1H7v1a1 1 0 0 1-2 0v-1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h1Z"/></svg></div>
+            <div class="me-dot" style="left:50%; top:76%; background:#F5A623; box-shadow:0 0 0 6px rgba(245,166,35,.25)"></div>
+          </div>
+
+          <div class="sheet">
+            <div class="grabber"></div>
+            <div class="driver-card">
+              <div class="driver-top">
+                <div class="avatar">M</div>
+                <div class="driver-name">
+                  <div class="n">Mitchell Smith</div>
+                  <div class="r"><span class="star">★</span> 4.9 · Top rated driver</div>
+                </div>
+                <div class="circle-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11 11 0 0 0 3.4.55 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11 11 0 0 0 .55 3.4 1 1 0 0 1-.25 1Z"/></svg></div>
+                <div class="circle-btn ghost"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg></div>
+              </div>
+              <div class="plate">
+                <div><div class="car-name">Volvo S60 · Silver</div><div class="car-model">GA-337-LR</div></div>
+                <svg width="46" height="26" viewBox="0 0 48 28" fill="#3A4150"><path d="M4 20l3-8a4 4 0 0 1 3.7-2.6h26.6A4 4 0 0 1 41 12l3 8v4a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2H11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4Z"/><rect x="11" y="12" width="26" height="6" rx="2" fill="#C6DBE8"/></svg>
+              </div>
+              <div class="route-line">
+                <div class="route-item"><span class="g"><span class="o"></span></span><span class="t">32 Av. Bosquet, Paris</span></div>
+                <div class="route-item"><span class="g"><span class="rl"></span></span></div>
+                <div class="route-item"><span class="g"><span class="sq"></span></span><span class="t">Soekarno-Hatta, Terminal 3</span></div>
+              </div>
+              <button class="cta ghost">Cancel ride</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="step">03 · En route</div>
+        <div class="title-c">Driver arriving</div>
+        <div class="desc">Countdown up top, driver &amp; vehicle you can verify, call/chat one tap away.</div>
+      </div>
+    </div>
+
+    <!-- 4 · TRIP IN PROGRESS -->
+    <div class="phone-cell" role="listitem">
+      <div class="phone">
+        <div class="screen" style="--sb:#14181F;">
+          <div class="island"></div>
+          <div class="statusbar"><span>9:41</span><span class="glyphs">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="currentColor" stroke-opacity=".4"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="currentColor"/></svg>
+          </span></div>
+
+          <div class="map">
+            <svg viewBox="0 0 300 620" preserveAspectRatio="xMidYMid slice">
+              <rect width="300" height="620" fill="var(--map-land)"/>
+              <path d="M-20 180 H320 M-20 360 H320" stroke="var(--map-road)" stroke-width="22"/>
+              <path d="M80 -20 V440 M200 -20 V440" stroke="var(--map-road)" stroke-width="20"/>
+              <rect x="20" y="220" width="70" height="80" rx="12" fill="var(--map-park)"/>
+              <path d="M150 -20 V120 C150 180 150 220 150 260" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+            <div class="taxi-pin" style="left:50%; top:41%; background:#14181F; width:30px; height:30px; box-shadow:0 6px 14px rgba(0,0,0,.3)"><svg viewBox="0 0 24 24" fill="#fff" style="width:17px;height:17px"><path d="M12 2l4 7-4-2-4 2 4-7Z" transform="rotate(0 12 12)"/><path d="M5 11l1.5-4A2 2 0 0 1 8.4 6h7.2a2 2 0 0 1 1.9 1.3L19 11h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1v1a1 1 0 0 1-2 0v-1H7v1a1 1 0 0 1-2 0v-1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h1Z"/></svg></div>
+          </div>
+
+          <div class="fab" style="right:16px; top:120px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+          <div class="fab" style="right:16px; top:170px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6Z"/></svg></div>
+
+          <div class="sheet">
+            <div class="grabber"></div>
+            <div class="trip-stats">
+              <div class="timer"><div><div class="m">32</div><div class="u">mins</div></div></div>
+              <div class="trip-mid">
+                <div class="km">43 km · arrive 11:20</div>
+                <div class="share"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> Share location</div>
+              </div>
+              <div class="sos">SOS</div>
+            </div>
+            <button class="cta dark">Stop the trip</button>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="step">04 · On trip</div>
+        <div class="title-c">On the way</div>
+        <div class="desc">Live ETA ring, share-location, and an always-reachable SOS — safety without noise.</div>
+      </div>
+    </div>
+
+    <!-- 5 · ARRIVED / RATING -->
+    <div class="phone-cell" role="listitem">
+      <div class="phone">
+        <div class="screen" style="--sb:#FFFFFF;">
+          <div class="island" style="background:#05070B;"></div>
+          <div class="arrived-screen">
+            <div class="check"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-11"/></svg></div>
+            <h3>You have arrived!</h3>
+            <p>Tour Eiffel Park, Paris · €&nbsp;9.99</p>
+            <div class="stars">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9.9-5 4.8 1.2 6.8L12 17.8 5.9 20.8 7.1 14 2 9.2l6.9-.9Z"/></svg>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9.9-5 4.8 1.2 6.8L12 17.8 5.9 20.8 7.1 14 2 9.2l6.9-.9Z"/></svg>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9.9-5 4.8 1.2 6.8L12 17.8 5.9 20.8 7.1 14 2 9.2l6.9-.9Z"/></svg>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9.9-5 4.8 1.2 6.8L12 17.8 5.9 20.8 7.1 14 2 9.2l6.9-.9Z"/></svg>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" class="off"><path d="M12 2l3 6.3 6.9.9-5 4.8 1.2 6.8L12 17.8 5.9 20.8 7.1 14 2 9.2l6.9-.9Z"/></svg>
+            </div>
+            <div class="comment">Leave a comment for Mitchell…</div>
+            <button class="cta">Done</button>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="step">05 · Arrive</div>
+        <div class="title-c">Rate your trip</div>
+        <div class="desc">A quiet moment of completion — clear fare, one tap to rate, done.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ---------- design tokens ---------- -->
+  <section class="tokens">
+    <h2>The system behind the screens</h2>
+    <div class="token-grid">
+      <div class="token-card">
+        <div class="label">Colour</div>
+        <div class="swatches">
+          <div class="swatch"><span class="chip" style="background:#F5A623"></span><span class="hex">#F5A623</span></div>
+          <div class="swatch"><span class="chip" style="background:#E8931A"></span><span class="hex">#E8931A</span></div>
+          <div class="swatch"><span class="chip" style="background:#14181F"></span><span class="hex">#14181F</span></div>
+          <div class="swatch"><span class="chip" style="background:#22B573"></span><span class="hex">#22B573</span></div>
+          <div class="swatch"><span class="chip" style="background:#FF5A5F"></span><span class="hex">#FF5A5F</span></div>
+          <div class="swatch"><span class="chip" style="background:#E9ECE6"></span><span class="hex">#E9ECE6</span></div>
+        </div>
+      </div>
+      <div class="token-card">
+        <div class="label">Type scale</div>
+        <div class="type-spec">
+          <div class="row"><span class="samp" style="font-size:22px; font-weight:800; letter-spacing:-.02em;">3 mins</span><span class="meta">Display · 800</span></div>
+          <div class="row"><span class="samp" style="font-size:15px; font-weight:650;">Mitchell Smith</span><span class="meta">Title · 650</span></div>
+          <div class="row"><span class="samp" style="font-size:13px; color:var(--subtitle)">43 km · arrive 11:20</span><span class="meta">Body · 400</span></div>
+          <div class="row"><span class="samp" style="font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--amber-deep)">01 · Home</span><span class="meta">Label · 700</span></div>
+        </div>
+      </div>
+      <div class="token-card">
+        <div class="label">Principles</div>
+        <div class="principles">
+          <div class="principle"><span class="k"></span><span><b>One accent, used with intent.</b> Amber marks only what you can act on.</span></div>
+          <div class="principle"><span class="k"></span><span><b>Safety reads instantly.</b> Green for progress, red for SOS — never the brand hue.</span></div>
+          <div class="principle"><span class="k"></span><span><b>Maps recede.</b> Muted land, soft roads; the route and your car are the only bright things.</span></div>
+          <div class="principle"><span class="k"></span><span><b>Numbers hold still.</b> Tabular figures for fares, ETAs and plates.</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="foot">Interactive design prototype · rendered live in CSS, no images · maps use OpenStreetMap-style tiling in production.
+      Built to match the Taxi Platform brand and guide the Jetpack Compose build.</p>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeBtn');
+    var icon = document.getElementById('themeIcon');
+    var label = document.getElementById('themeLabel');
+    function current() {
+      var attr = document.documentElement.getAttribute('data-theme');
+      if (attr) return attr;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function apply(next) {
+      document.documentElement.setAttribute('data-theme', next);
+      icon.textContent = next === 'dark' ? '☾' : '☀';
+      label.textContent = next === 'dark' ? 'Dark' : 'Light';
+    }
+    apply(current());
+    btn.addEventListener('click', function () {
+      apply(current() === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>
