@@ -38,6 +38,14 @@ function pinEl(): HTMLDivElement {
   return d;
 }
 
+function driverEl(): HTMLDivElement {
+  const d = document.createElement("div");
+  d.className = "mk-driver";
+  d.innerHTML =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="#16181C"><path d="M8.2 3h7.6a2 2 0 0 1 1.9 1.4l.85 2.9c.95.28 1.55 1.1 1.55 2.05v8.35c0 .77-.58 1.3-1.3 1.3h-1.4v1.35c0 .58-.5 1.05-1.1 1.05h-.9c-.6 0-1.1-.47-1.1-1.05V19H9.7v1.35c0 .58-.5 1.05-1.1 1.05h-.9c-.6 0-1.1-.47-1.1-1.05V19H5.2c-.72 0-1.3-.53-1.3-1.3V9.35c0-.95.6-1.77 1.55-2.05l.85-2.9A2 2 0 0 1 8.2 3Zm-.15 3.1L7.3 8.7h9.4l-.75-2.6a.7.7 0 0 0-.67-.5H8.72a.7.7 0 0 0-.67.5Z"/></svg>';
+  return d;
+}
+
 interface Props {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
   from: GeoPoint | null;
