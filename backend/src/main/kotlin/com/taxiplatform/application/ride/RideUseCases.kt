@@ -15,6 +15,8 @@ data class RequestRideCommand(
 	val passengerId: UUID,
 	val pickup: GeoPoint,
 	val dropoff: GeoPoint,
+	/** When set (and in the future), the ride is booked for later instead of dispatched now. */
+	val scheduledAt: Instant? = null,
 )
 
 @Service
@@ -24,6 +26,9 @@ class RequestRideUseCase(
 ) {
 	@Transactional
 	fun execute(command: RequestRideCommand): Ride {
+		val now = Instant.now()
+		val scheduleForLater = command.scheduledAt != null && command.scheduledAt.isAfter(now)
+
 		val ride = rideRepository.save(
 			Ride(
 				id = UUID.randomUUID(),
@@ -31,8 +36,9 @@ class RequestRideUseCase(
 				driverId = null,
 				pickup = command.pickup,
 				dropoff = command.dropoff,
-				status = RideStatus.REQUESTED,
-				requestedAt = Instant.now(),
+				status = if (scheduleForLater) RideStatus.SCHEDULED else RideStatus.REQUESTED,
+				requestedAt = now,
+				scheduledAt = if (scheduleForLater) command.scheduledAt else null,
 				acceptedAt = null,
 				arrivedAt = null,
 				startedAt = null,
@@ -41,7 +47,8 @@ class RequestRideUseCase(
 				cancelledReason = null,
 			),
 		)
-		return dispatchService.startDispatch(ride)
+		// A scheduled ride waits for OfferTimeoutScheduler's sibling sweeper; dispatch only immediate ones.
+		return if (scheduleForLater) ride else dispatchService.startDispatch(ride)
 	}
 }
 
