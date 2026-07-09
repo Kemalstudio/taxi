@@ -2,6 +2,7 @@ package com.taxiplatform.infrastructure.geo
 
 import com.taxiplatform.application.ports.DriverGeoIndex
 import com.taxiplatform.domain.geo.DriverCandidate
+import com.taxiplatform.domain.geo.DriverLocation
 import com.taxiplatform.domain.geo.GeoPoint
 import org.springframework.data.geo.Distance
 import org.springframework.data.geo.Metrics
@@ -39,6 +40,20 @@ class RedisDriverGeoIndex(
 		return results.content.mapNotNull { result ->
 			val driverId = result.content.name.let { runCatching { UUID.fromString(it) }.getOrNull() } ?: return@mapNotNull null
 			DriverCandidate(driverId = driverId, distanceKm = result.distance.value)
+		}
+	}
+
+	override fun findAllOnline(): List<DriverLocation> {
+		val members = redisTemplate.opsForZSet().range(geoKey, 0, -1) ?: return emptyList()
+		if (members.isEmpty()) return emptyList()
+
+		val ordered = members.toList()
+		val positions = redisTemplate.opsForGeo().position(geoKey, *ordered.toTypedArray()) ?: return emptyList()
+
+		return ordered.mapIndexedNotNull { index, member ->
+			val driverId = runCatching { UUID.fromString(member) }.getOrNull() ?: return@mapIndexedNotNull null
+			val position = positions.getOrNull(index) ?: return@mapIndexedNotNull null
+			DriverLocation(driverId = driverId, point = GeoPoint(lat = position.y, lng = position.x))
 		}
 	}
 }
