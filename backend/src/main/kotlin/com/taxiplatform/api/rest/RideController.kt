@@ -45,6 +45,7 @@ class RideController(
 				passengerId = principal.userId,
 				pickup = GeoPoint(request.pickup.lat, request.pickup.lng),
 				dropoff = GeoPoint(request.dropoff.lat, request.dropoff.lng),
+				scheduledAt = request.scheduledAt,
 			),
 		)
 		return ResponseEntity.status(HttpStatus.CREATED).body(RideResponse.from(ride))
