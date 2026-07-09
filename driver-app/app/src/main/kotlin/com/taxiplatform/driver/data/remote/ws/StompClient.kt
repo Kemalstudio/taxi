@@ -9,7 +9,10 @@ import com.taxiplatform.driver.domain.model.RideStatusUpdate
 import com.taxiplatform.driver.domain.repository.RideEventsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -41,7 +44,7 @@ class StompClient @Inject constructor(
 	private val activeDestinations = mutableSetOf<String>()
 	private val subscriptionIds = AtomicInteger(0)
 
-	private val offers = MutableSharedFlow<RideOffer>(extraBufferCapacity = 8)
+	private val _currentOffer = MutableStateFlow<RideOffer?>(null)
 	private val statuses = MutableSharedFlow<RideStatusUpdate>(extraBufferCapacity = 8)
 
 	override fun connect(driverId: String) {
@@ -58,9 +61,14 @@ class StompClient @Inject constructor(
 		connected = false
 		pendingDestinations.clear()
 		activeDestinations.clear()
+		_currentOffer.value = null
 	}
 
-	override fun observeOffers(): Flow<RideOffer> = offers.asSharedFlow()
+	override val currentOffer: StateFlow<RideOffer?> = _currentOffer.asStateFlow()
+
+	override fun clearOffer() {
+		_currentOffer.value = null
+	}
 
 	override fun observeRideStatus(rideId: String): Flow<RideStatusUpdate> {
 		subscribe("/topic/ride/$rideId")
@@ -112,7 +120,7 @@ class StompClient @Inject constructor(
 	private fun handleMessage(destination: String, body: String) {
 		when {
 			destination.startsWith("/topic/driver/") ->
-				moshi.adapter(RideOfferMessageDto::class.java).fromJson(body)?.let { offers.tryEmit(it.toDomain()) }
+				moshi.adapter(RideOfferMessageDto::class.java).fromJson(body)?.let { _currentOffer.value = it.toDomain() }
 
 			destination.startsWith("/topic/ride/") ->
 				moshi.adapter(RideStatusMessageDto::class.java).fromJson(body)?.let { statuses.tryEmit(it.toDomain()) }
