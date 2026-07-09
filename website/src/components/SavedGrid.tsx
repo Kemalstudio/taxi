@@ -1,5 +1,6 @@
 import { Home, Briefcase, Plane, ShoppingBag, Store, Dumbbell } from "lucide-react";
 import { SAVED_PLACES, type SavedPlace } from "../data/places";
+import { useI18n } from "../i18n";
 import type { GeoPoint } from "../types";
 
 const ICONS = {
@@ -11,7 +12,17 @@ const ICONS = {
   dumbbell: Dumbbell,
 } as const;
 
+const LABEL_KEY: Record<SavedPlace["icon"], string> = {
+  home: "saved.home",
+  briefcase: "saved.work",
+  plane: "saved.airport",
+  "shopping-bag": "saved.mall",
+  store: "saved.market",
+  dumbbell: "saved.stadium",
+};
+
 export function SavedGrid({ onPick }: { onPick: (p: GeoPoint) => void }) {
+  const { t } = useI18n();
   return (
     <div className="card">
       <div className="saved-grid">
@@ -27,7 +38,7 @@ export function SavedGrid({ onPick }: { onPick: (p: GeoPoint) => void }) {
                 <Icon size={18} />
               </span>
               <div>
-                <div className="stk">{s.key}</div>
+                <div className="stk">{t(LABEL_KEY[s.icon])}</div>
                 <div className="stv">{s.short}</div>
               </div>
             </button>
