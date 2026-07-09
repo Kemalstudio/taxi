@@ -130,11 +130,8 @@ export default function App() {
   const orderLabel =
     price != null ? `${mode === "later" ? t("sch.book") : t("sch.order")} · ${price} TMT` : "";
 
-  const submit = () => {
-    if (!canOrder || price == null) return;
-    const rows: [string, string][] = [
-      [t("m.route"), `${from.point!.label} → ${to.point!.label}`],
-    ];
+  const buildRows = (): [string, string][] => {
+    const rows: [string, string][] = [[t("m.route"), `${from.point!.label} → ${to.point!.label}`]];
     const stopLabels = stops.filter((s) => s.field.point).map((s) => s.field.point!.label);
     if (stopLabels.length) rows.push([t("m.stops"), stopLabels.join(", ")]);
     rows.push([t("m.price"), `${price} TMT · ${t("m.cash")}`]);
@@ -142,12 +139,43 @@ export default function App() {
     if (options.otherOpen && options.otherName.trim()) {
       rows.push([t("m.passenger"), `${options.otherName.trim()} · +993 ${options.otherPhone.trim() || "—"}`]);
     }
+    return rows;
+  };
+
+  const submit = async () => {
+    if (!canOrder || price == null || !from.point || !to.point) return;
+    const rows = buildRows();
+
+    // Scheduled booking: backend scheduling is a later phase — confirm locally.
     if (mode === "later") {
       rows.push([t("m.atTime"), `${date} ${time}`]);
       setSummary({ title: t("m.bookTitle"), subtitle: t("m.bookSub"), rows });
-    } else {
-      setSummary({ title: t("m.orderTitle"), subtitle: t("m.orderSub"), rows });
+      return;
     }
+
+    // "Now": create a real ride on the backend when signed in — it shows up in admin.
+    if (session?.online && apiToken.get()) {
+      try {
+        const ride = await createRide(from.point, to.point);
+        setSummary({
+          title: t("m.orderTitle"),
+          subtitle: t("m.orderSub"),
+          rows: [...rows, [t("m.rideNo"), ride.id.slice(0, 8)]],
+        });
+      } catch (e) {
+        if (e instanceof ApiError) {
+          setSummary({ title: t("m.failTitle"), subtitle: e.message, rows });
+        } else if (e instanceof NetworkError) {
+          setSummary({ title: t("m.orderTitle"), subtitle: t("m.demo"), rows });
+        } else {
+          setSummary({ title: t("m.failTitle"), subtitle: String(e), rows });
+        }
+      }
+      return;
+    }
+
+    // Not signed in (or demo session): local confirmation.
+    setSummary({ title: t("m.orderTitle"), subtitle: t("m.orderSub"), rows });
   };
 
   return (
