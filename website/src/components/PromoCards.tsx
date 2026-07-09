@@ -7,7 +7,7 @@ export function PromoCards() {
     <>
       <div className="promo-phone">
         <div>
-          <div className="pp-num">+993 (12) 46-70-74</div>
+          <div className="pp-num">+993 (64) 00-53-74 </div>
           <div className="pp-sub">{t("promo.phone")}</div>
         </div>
         <div className="pp-car">🚕</div>
