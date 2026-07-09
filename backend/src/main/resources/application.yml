@@ -31,6 +31,13 @@ taxi:
     search-radius-km: 5.0
     offer-timeout-seconds: 15
     offer-sweep-interval-ms: 2000
+  admin:
+    seed-enabled: ${ADMIN_SEED_ENABLED:true}
+    email: ${ADMIN_EMAIL:admin@taxi.local}
+    password: ${ADMIN_PASSWORD:AdminSecret123}
+    full-name: ${ADMIN_FULL_NAME:Platform Admin}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 springdoc:
   swagger-ui:
