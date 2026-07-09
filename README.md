@@ -233,8 +233,43 @@ cd website
 npm run build        # tsc typecheck + vite production build
 ```
 
+### Product features
+
+- **Dark / light theme** (top-nav toggle, persisted).
+- **Languages: Russian / English / Türkmen** (top-nav switcher, persisted) —
+  dictionary in `src/i18n.tsx`.
+- **GPS "my location"** — browser geolocation sets the pickup point.
+- **3D map** — the map runs on **MapLibre GL (WebGL)**; the `3D/2D` button
+  tilts it (pitch) for a perspective view. Uses raster OSM tiles (no API key).
+- **Login / Register** (`LoginModal`) — talks to the real backend.
+
+### Connected to the backend (shared API)
+
+The website talks to the **same backend** as the driver app and admin
+dashboard, so an order placed on the site shows up in the admin dashboard's
+rides list.
+
+- `src/lib/api.ts` calls `POST /auth/register` / `POST /auth/login`
+  (a `+993` phone is mapped to a stable email) and `POST /rides`.
+- Base URL from `website/.env` (`VITE_API_BASE_URL`, default
+  `http://localhost:8080`).
+- The backend's CORS now allows the site origins (5174/5175) alongside the
+  admin dashboard (5173) — see `taxi.cors.allowed-origins`.
+- If the backend isn't running, the site falls back to a **demo mode** so it
+  stays usable; scheduled ("Ко времени") bookings are confirmed locally
+  (backend ride scheduling is a later phase).
+
+### End-to-end check (needs Docker for the backend)
+
+1. `docker compose up --build` (backend + Postgres + Redis).
+2. `cd website && npm run dev`, open it, **Sign in** (registers a passenger),
+   pick A→B, **Заказать**.
+3. `cd admin-dashboard && npm run dev`, log in as the seeded admin — the new
+   ride appears in **Rides** and the KPIs update. The driver app (once built)
+   talks to the same API, so drivers can accept these rides.
+
 ### Roadmap (explicitly out of scope for this phase)
 
-Wiring to the real backend API (auth + ride creation + scheduled rides),
-account/login pages, live driver tracking after ordering, marketing/landing
-pages (tariffs, for-drivers), i18n (Turkmen/English).
+Offline map (downloaded Ashgabat vector tiles + PWA cache), backend ride
+**scheduling** for the "Ко времени" bookings, live driver tracking after
+ordering, marketing/landing pages.
