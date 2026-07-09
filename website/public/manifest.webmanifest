@@ -1,0 +1,12 @@
+{
+  "name": "Taksi Go",
+  "short_name": "Taksi Go",
+  "description": "Заказ такси в Ашхабаде — Taksi Go",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E9ECEE",
+  "theme_color": "#FFD93B",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
