@@ -2,10 +2,14 @@ package com.taxiplatform.driver.data.remote
 
 import com.taxiplatform.driver.data.remote.dto.RideResponseDto
 import retrofit2.Response
+import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.POST
 
 interface RideApi {
+	@GET("rides/{id}")
+	suspend fun getRide(@Path("id") rideId: String): RideResponseDto
+
 	@POST("rides/{id}/accept")
 	suspend fun accept(@Path("id") rideId: String): RideResponseDto
 
