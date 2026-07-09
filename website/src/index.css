@@ -247,6 +247,13 @@ body { font-family: var(--font); color: var(--ink); background: var(--page); -we
 .auth-submit:hover { background: var(--accent-press); }
 .auth-err { color: var(--to); font-size: 13px; margin: 4px 2px 0; }
 
+/* offline indicator */
+.offline-badge {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 800;
+  display: flex; align-items: center; gap: 8px; background: var(--ink); color: #fff;
+  padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow);
+}
+
 @media (max-width: 900px) {
   .promo-phone, .promo-driver, .navmenu, .nav-user { display: none; }
   .panel { width: calc(100vw - 32px); }
