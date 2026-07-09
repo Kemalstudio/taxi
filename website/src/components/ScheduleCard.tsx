@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n";
 import type { RideMode } from "../types";
 
 interface Props {
@@ -17,14 +18,15 @@ interface Props {
 }
 
 export function ScheduleCard(p: Props) {
+  const { t } = useI18n();
   return (
     <div className="card">
       <div className="seg">
         <button className={p.mode === "now" ? "on" : ""} onClick={() => p.onMode("now")}>
-          Сейчас
+          {t("sch.now")}
         </button>
         <button className={p.mode === "later" ? "on" : ""} onClick={() => p.onMode("later")}>
-          Ко времени
+          {t("sch.later")}
         </button>
       </div>
 
@@ -37,7 +39,7 @@ export function ScheduleCard(p: Props) {
 
       <div className="fare-card">
         <div className="fare-left">
-          <div className="fl-k">Стоимость · наличные</div>
+          <div className="fl-k">{t("sch.fare")}</div>
           <div className="fl-v">{p.fareText}</div>
         </div>
         <div className="fare-right">
@@ -48,7 +50,7 @@ export function ScheduleCard(p: Props) {
 
       <div style={{ padding: "0 10px 12px" }}>
         <button className="order-btn" disabled={!p.canOrder} onClick={p.onOrder}>
-          {p.canOrder ? p.orderLabel : "Укажите точки A и B"}
+          {p.canOrder ? p.orderLabel : t("sch.needAB")}
         </button>
       </div>
       <div className="hint">{p.hint}</div>
