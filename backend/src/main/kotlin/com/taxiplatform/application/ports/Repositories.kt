@@ -22,6 +22,12 @@ interface DriverProfileRepository {
 interface RideRepository {
 	fun findById(id: UUID): Ride?
 	fun save(ride: Ride): Ride
+
+	/** Scheduled rides whose time has come (status SCHEDULED and scheduledAt <= now). */
+	fun findDueScheduled(now: Instant): List<Ride>
+
+	/** The driver's currently in-progress ride (ACCEPTED / DRIVER_ARRIVED / IN_PROGRESS), if any. */
+	fun findActiveByDriver(driverId: UUID): Ride?
 }
 
 interface RideOfferRepository {
