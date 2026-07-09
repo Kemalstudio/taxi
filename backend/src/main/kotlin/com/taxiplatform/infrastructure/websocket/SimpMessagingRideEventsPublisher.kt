@@ -1,9 +1,11 @@
 package com.taxiplatform.infrastructure.websocket
 
 import com.taxiplatform.api.dto.GeoPointDto
+import com.taxiplatform.api.dto.RideLocationMessage
 import com.taxiplatform.api.dto.RideOfferMessage
 import com.taxiplatform.api.dto.RideStatusMessage
 import com.taxiplatform.application.ports.RideEventsPublisher
+import com.taxiplatform.domain.geo.GeoPoint
 import com.taxiplatform.domain.ride.Ride
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Component
@@ -33,6 +35,13 @@ class SimpMessagingRideEventsPublisher(
 				status = ride.status.name,
 				driverId = ride.driverId,
 			),
+		)
+	}
+
+	override fun driverLocation(rideId: UUID, driverId: UUID, point: GeoPoint) {
+		messagingTemplate.convertAndSend(
+			"/topic/ride/$rideId",
+			RideLocationMessage(rideId = rideId, driverId = driverId, lat = point.lat, lng = point.lng),
 		)
 	}
 }
