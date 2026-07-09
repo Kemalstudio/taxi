@@ -129,7 +129,7 @@
   }
   .mk-me { width: 18px; height: 18px; border-radius: 50%; background: #2E7DF6; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(46,125,246,.22); }
   .mk-a { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 4px solid var(--ink); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
-  .mk-b { width: 18px; height: 18px; border-radius: 5px; background: var(--green); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+  .mk-b { width: 18px; height: 18px; border-radius: 5px; background: var(--to); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
 
   /* floating controls */
   .fab {
@@ -165,7 +165,7 @@
     border: 1px solid var(--line); border-radius: 16px; padding: 14px 15px; cursor: pointer;
   }
   .field .ph { color: var(--text-2); font-size: 15px; font-weight: 500; flex: 1; }
-  .field .ic { color: var(--green); display: grid; place-items: center; }
+  .field .ic { color: var(--text-2); display: grid; place-items: center; }
   .field input {
     border: none; background: transparent; outline: none; font-family: inherit; font-size: 15px;
     color: var(--text); flex: 1; width: 100%;
@@ -175,7 +175,7 @@
   .saved { display: flex; flex-direction: column; margin-top: 8px; }
   .srow { display: flex; align-items: center; gap: 13px; padding: 12px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
   .srow:last-child { border-bottom: 0; }
-  .sic { width: 40px; height: 40px; border-radius: 12px; background: var(--green-soft); color: var(--green-deep); display: grid; place-items: center; flex-shrink: 0; }
+  .sic { width: 40px; height: 40px; border-radius: 12px; background: var(--panel-2); color: var(--ink); display: grid; place-items: center; flex-shrink: 0; }
   .smeta { flex: 1; min-width: 0; }
   .smeta .k { font-size: 14.5px; font-weight: 600; }
   .smeta .v { font-size: 12.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -188,7 +188,8 @@
     border: none; cursor: pointer; transition: transform .1s;
   }
   .btn:active { transform: scale(.985); }
-  .btn-green { background: linear-gradient(150deg, var(--green), var(--green-deep)); color: #fff; box-shadow: 0 12px 26px rgba(23,160,107,.34); }
+  .btn-green { background: var(--accent); color: var(--accent-ink); box-shadow: 0 12px 26px rgba(245,200,30,.38); }
+  .btn-green:hover { background: var(--accent-press); }
   .btn-dark { background: var(--ink); color: #fff; }
   :root[data-theme="dark"] .btn-dark { background: #05201655; border: 1px solid var(--line); color: var(--text); }
   .btn-danger { background: transparent; color: var(--red); border: 1.5px solid rgba(229,72,77,.4); }
@@ -212,12 +213,13 @@
     display: flex; align-items: center; gap: 13px; padding: 13px; border-radius: 16px;
     border: 1.5px solid var(--line); margin-bottom: 9px; cursor: pointer; background: var(--panel);
   }
-  .car.sel { border-color: var(--green); background: var(--green-soft); }
+  .car.sel { border-color: var(--accent-press); background: #FFFBEC; }
+  :root[data-theme="dark"] .car.sel { background: #26220F; }
   .car .cic { width: 48px; height: 32px; display: grid; place-items: center; flex-shrink: 0; }
   .car .cm { flex: 1; }
   .car .cm .n { font-size: 15px; font-weight: 650; display: flex; align-items: center; gap: 7px; }
-  .car .cm .n .bd { font-size: 10px; font-weight: 700; color: var(--green-deep); background: var(--green-soft); padding: 2px 6px; border-radius: 6px; }
-  :root[data-theme="dark"] .car .cm .n .bd { color: var(--green); }
+  .car .cm .n .bd { font-size: 10px; font-weight: 700; color: #8A6B00; background: #FFF3C4; padding: 2px 6px; border-radius: 6px; }
+  :root[data-theme="dark"] .car .cm .n .bd { color: var(--accent); background: #2E2810; }
   .car .cm .s { font-size: 12px; color: var(--text-2); margin-top: 1px; }
   .car .cp { text-align: right; font-variant-numeric: tabular-nums; }
   .car .cp .now { font-size: 15px; font-weight: 750; }
@@ -227,7 +229,7 @@
     display: flex; align-items: center; gap: 11px; padding: 13px 15px; border-radius: 15px;
     background: var(--panel-2); border: 1px solid var(--line); margin: 6px 0 12px; font-size: 14px; font-weight: 600;
   }
-  .pay .cashic { width: 30px; height: 30px; border-radius: 9px; background: var(--green-soft); color: var(--green-deep); display: grid; place-items: center; }
+  .pay .cashic { width: 30px; height: 30px; border-radius: 9px; background: var(--panel-2); color: var(--ink); display: grid; place-items: center; }
   .pay .lbl small { display: block; font-size: 11px; font-weight: 500; color: var(--text-2); }
   .pay .chev { margin-left: auto; color: var(--tab-off); }
 
@@ -242,6 +244,44 @@
   .prog i { display: block; height: 100%; width: 60%; background: #fff; border-radius: 4px; }
 
   .dcard { display: flex; flex-direction: column; gap: 14px; }
+
+  /* premium driver hero card */
+  .driver-hero {
+    position: relative; overflow: hidden; border-radius: 20px; padding: 15px 16px 14px;
+    min-height: 148px; color: #fff;
+    background:
+      radial-gradient(120% 90% at 85% 20%, #2A2F38, transparent 60%),
+      linear-gradient(155deg, #262B33, #14171C);
+    box-shadow: 0 12px 30px rgba(16,18,22,.28);
+  }
+  .dh-top { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: flex-start; }
+  .dh-plate { font-size: 19px; font-weight: 800; letter-spacing: .03em; }
+  .dh-model { font-size: 12.5px; color: #A6ADB8; margin-top: 3px; }
+  .dh-eta { text-align: right; }
+  .dh-min { font-size: 18px; font-weight: 800; }
+  .dh-lbl { font-size: 12px; color: #A6ADB8; margin-top: 3px; }
+  .dh-car { position: absolute; right: -4px; top: 26px; width: 205px; height: auto; z-index: 1; }
+  .dh-bottom { position: relative; z-index: 2; display: flex; align-items: center; gap: 12px; margin-top: 62px; }
+  .dh-av {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), #E9A23B); color: #14171C; font-weight: 800; font-size: 17px;
+    border: 2px solid rgba(255,255,255,.35);
+  }
+  .dh-idn { flex: 1; min-width: 0; }
+  .dh-name { font-size: 15px; font-weight: 700; }
+  .dh-rate { font-size: 12.5px; color: #C9D0DA; margin-top: 1px; }
+  .dh-rate .st { color: var(--accent); }
+  .dh-accent { margin-left: auto; width: 60px; height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-press)); box-shadow: 0 2px 10px rgba(245,200,30,.5); }
+
+  .dactions { display: flex; gap: 8px; }
+  .dact {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    font-family: inherit; font-size: 13.5px; font-weight: 650; color: var(--text); cursor: pointer;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 13px; padding: 11px 8px;
+    transition: background .15s;
+  }
+  .dact:hover { background: #EFF1F4; }
+  :root[data-theme="dark"] .dact:hover { background: #232830; }
   .dtop { display: flex; align-items: center; gap: 12px; }
   .av { width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--green), #0E7E53); display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 18px; }
   .dn { flex: 1; }
@@ -286,7 +326,7 @@
 
   /* auth */
   .auth { height: 100%; display: flex; flex-direction: column; padding: 74px 26px 26px; }
-  .auth .logo { width: 56px; height: 56px; border-radius: 17px; background: linear-gradient(150deg, var(--green), var(--green-deep)); display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 26px; box-shadow: 0 12px 26px rgba(23,160,107,.34); }
+  .auth .logo { width: 56px; height: 56px; border-radius: 17px; background: linear-gradient(150deg, var(--accent), var(--accent-press)); display: grid; place-items: center; color: var(--accent-ink); font-weight: 800; font-size: 26px; box-shadow: 0 12px 26px rgba(245,200,30,.4); }
   .auth h2 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; margin: 22px 0 4px; }
   .auth .lead { font-size: 14px; color: var(--text-2); margin: 0 0 26px; }
   .form { display: flex; flex-direction: column; gap: 12px; }
@@ -295,15 +335,18 @@
   .inp .cc { font-size: 15px; font-weight: 600; color: var(--text); padding-right: 10px; border-right: 1px solid var(--line); }
   .inp input { border: none; background: transparent; outline: none; font-family: inherit; font-size: 15px; color: var(--text); flex: 1; width: 100%; }
   .inp input::placeholder { color: var(--text-2); }
-  .inp .ic { color: var(--green); }
+  .inp .ic { color: var(--text-2); }
   .auth .alt { text-align: center; font-size: 13.5px; color: var(--text-2); margin-top: 18px; }
-  .auth .alt a { color: var(--green-deep); font-weight: 650; text-decoration: none; cursor: pointer; }
-  :root[data-theme="dark"] .auth .alt a { color: var(--green); }
+  .auth .alt a { color: var(--ink); font-weight: 700; text-decoration: underline; text-decoration-color: var(--accent-press); text-underline-offset: 3px; cursor: pointer; }
+  :root[data-theme="dark"] .auth .alt a { color: var(--text); }
   .auth .spacer { flex: 1; }
 
   /* profile */
   .prof { height: 100%; display: flex; flex-direction: column; overflow-y: auto; }
-  .prof-head { padding: 66px 22px 24px; background: linear-gradient(160deg, var(--green), var(--green-deep)); color: #fff; display: flex; align-items: center; gap: 15px; }
+  .prof-head { padding: 66px 22px 24px; background: linear-gradient(160deg, var(--accent), var(--accent-press)); color: var(--accent-ink); display: flex; align-items: center; gap: 15px; }
+  .prof-head .pav { background: rgba(20,24,31,.14) !important; border-color: rgba(20,24,31,.28) !important; color: var(--accent-ink) !important; }
+  .prof-head .pp { opacity: .72 !important; }
+  .prof-head .pr { background: rgba(20,24,31,.14) !important; }
   .prof-head .pav { width: 62px; height: 62px; border-radius: 50%; background: rgba(255,255,255,.2); display: grid; place-items: center; font-size: 24px; font-weight: 700; border: 2px solid rgba(255,255,255,.5); }
   .prof-head .pn { font-size: 19px; font-weight: 750; }
   .prof-head .pp { font-size: 13px; opacity: .9; font-variant-numeric: tabular-nums; }
@@ -311,8 +354,8 @@
   .balance { margin: -18px 18px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 26px rgba(16,23,19,.1); position: relative; z-index: 2; }
   .balance .bl { font-size: 12.5px; color: var(--text-2); }
   .balance .bv { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .balance .bt { font-size: 11px; color: var(--green-deep); font-weight: 700; background: var(--green-soft); padding: 5px 11px; border-radius: 999px; }
-  :root[data-theme="dark"] .balance .bt { color: var(--green); }
+  .balance .bt { font-size: 11px; color: #8A6B00; font-weight: 700; background: #FFF3C4; padding: 5px 11px; border-radius: 999px; }
+  :root[data-theme="dark"] .balance .bt { color: var(--accent); background: #2E2810; }
   .menu { padding: 10px 14px 90px; display: flex; flex-direction: column; }
   .mrow { display: flex; align-items: center; gap: 14px; padding: 14px 8px; border-bottom: 1px solid var(--line); cursor: pointer; }
   .mrow:last-child { border-bottom: 0; }
@@ -331,10 +374,72 @@
     justify-content: space-around;
   }
   .tab { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--tab-off); cursor: pointer; font-size: 10.5px; font-weight: 600; }
-  .tab.on { color: var(--green-deep); }
-  :root[data-theme="dark"] .tab.on { color: var(--green); }
+  .tab.on { color: var(--ink); }
+  :root[data-theme="dark"] .tab.on { color: var(--text); }
 
   .backfab { position: absolute; top: 56px; left: 16px; z-index: 700; }
+
+  /* ---------- home (Yandex-style) ---------- */
+  .home-top { position: absolute; top: 52px; left: 14px; right: 14px; z-index: 500; display: flex; align-items: center; gap: 12px; }
+  .home-av {
+    width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent-press)); color: var(--accent-ink);
+    display: grid; place-items: center; font-weight: 800; font-size: 18px; box-shadow: 0 6px 16px rgba(20,24,31,.18);
+    border: 2px solid var(--panel);
+  }
+  .home-av.ghost { background: var(--panel); color: var(--text); }
+  .home-addr { flex: 1; text-align: center; }
+  .home-addr .ha-lab { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .home-addr .ha-lab span { color: var(--text-2); }
+  .home-addr .ha-street { font-size: 16px; font-weight: 750; letter-spacing: -.01em; margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 1px 8px var(--panel), 0 0 10px var(--panel); }
+
+  .pickup-pill {
+    position: absolute; top: 190px; left: 50%; transform: translateX(-30%); z-index: 480;
+    display: flex; align-items: center; gap: 10px; background: var(--accent); color: var(--accent-ink);
+    border-radius: 14px; padding: 8px 14px 8px 8px; box-shadow: 0 8px 20px rgba(20,24,31,.22);
+  }
+  .pickup-pill .pp-ic { width: 34px; height: 34px; border-radius: 10px; background: rgba(20,24,31,.12); display: grid; place-items: center; }
+  .pickup-pill .pp-t { font-size: 14px; font-weight: 750; line-height: 1; }
+  .pickup-pill .pp-s { font-size: 11.5px; opacity: .8; margin-top: 2px; }
+  .pickup-pill::after { content: ""; position: absolute; left: 50%; bottom: -18px; transform: translateX(-50%);
+    width: 2px; height: 18px; background: var(--ink); }
+  .pickup-pill::before { content: ""; position: absolute; left: 50%; bottom: -24px; transform: translateX(-50%);
+    width: 10px; height: 10px; border-radius: 50%; background: var(--ink); border: 2px solid var(--panel); }
+
+  .whereto {
+    display: flex; align-items: center; gap: 12px; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 16px; padding: 11px 13px; cursor: pointer; margin-bottom: 12px; transition: background .15s;
+  }
+  .whereto:hover { background: #EFF1F4; }
+  :root[data-theme="dark"] .whereto:hover { background: #232830; }
+  .whereto .wt-car { width: 40px; height: 40px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex-shrink: 0; }
+  .whereto .wt-t { flex: 1; font-size: 16px; font-weight: 650; color: var(--text-2); }
+  .whereto .wt-arrow { color: var(--text); display: grid; place-items: center; }
+
+  .place-cards { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 12px; scrollbar-width: none; }
+  .place-cards::-webkit-scrollbar { display: none; }
+  .place-card {
+    position: relative; flex-shrink: 0; width: 116px; height: 92px; border-radius: 16px; cursor: pointer;
+    background: var(--panel-2); border: 1px solid var(--line); padding: 12px 12px; overflow: hidden; transition: transform .12s;
+  }
+  .place-card:active { transform: scale(.97); }
+  .place-card .pc-name { font-size: 14.5px; font-weight: 700; }
+  .place-card .pc-eta { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+  .place-card .pc-car { position: absolute; right: 8px; bottom: 6px; color: var(--accent-press); }
+  :root[data-theme="dark"] .place-card .pc-car { color: var(--accent); }
+
+  .services { display: flex; gap: 10px; }
+  .service-tile {
+    flex: 1; display: flex; align-items: center; gap: 11px; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 15px; padding: 13px 14px; cursor: pointer; transition: background .15s;
+  }
+  .service-tile:hover { background: #EFF1F4; }
+  :root[data-theme="dark"] .service-tile:hover { background: #232830; }
+  .service-tile .st-ic { width: 34px; height: 34px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); display: grid; place-items: center; flex-shrink: 0; }
+  :root[data-theme="dark"] .service-tile .st-ic { color: var(--text); }
+  .service-tile .st-t { font-size: 14.5px; font-weight: 650; }
 
   /* ---------- chat ---------- */
   .chat { height: 100%; display: flex; flex-direction: column; background: var(--panel-2); }
@@ -356,7 +461,7 @@
   .msg { max-width: 78%; padding: 10px 13px; font-size: 14px; line-height: 1.4; border-radius: 18px; animation: pop .22s ease-out; word-wrap: break-word; }
   .msg .time { display: block; font-size: 10px; margin-top: 3px; opacity: .6; }
   .msg.them { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); border-bottom-left-radius: 6px; color: var(--text); }
-  .msg.me { align-self: flex-end; background: linear-gradient(150deg, var(--green), var(--green-deep)); color: #fff; border-bottom-right-radius: 6px; }
+  .msg.me { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 6px; }
   @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
   .typing { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; border-bottom-left-radius: 6px; padding: 13px 15px; display: none; gap: 4px; align-items: center; }
   .typing.on { display: inline-flex; }
@@ -367,10 +472,10 @@
 
   .quick { display: flex; gap: 8px; padding: 4px 14px 8px; overflow-x: auto; }
   .quick button {
-    flex-shrink: 0; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--green-deep);
-    background: var(--green-soft); border: none; border-radius: 999px; padding: 8px 14px; cursor: pointer; white-space: nowrap;
+    flex-shrink: 0; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; white-space: nowrap;
   }
-  :root[data-theme="dark"] .quick button { color: var(--green); }
+  :root[data-theme="dark"] .quick button { color: var(--text); }
   .chat-input {
     display: flex; align-items: center; gap: 9px; padding: 10px 14px calc(14px + env(safe-area-inset-bottom));
     background: var(--panel); border-top: 1px solid var(--line);
@@ -380,9 +485,9 @@
     font-family: inherit; font-size: 14px; color: var(--text); outline: none;
   }
   .chat-input input::placeholder { color: var(--text-2); }
-  .chat-input input:focus { border-color: var(--green); }
+  .chat-input input:focus { border-color: var(--accent-press); }
   .chat-input .send { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; border: none; cursor: pointer;
-    background: linear-gradient(150deg, var(--green), var(--green-deep)); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 16px rgba(23,160,107,.34); }
+    background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: 0 6px 16px rgba(245,200,30,.4); }
 
   @media (max-width: 420px) {
     .phone { width: 92vw; height: 82vh; }
@@ -478,32 +583,70 @@
         <!-- ============ HOME ============ -->
         <section class="view" id="v-home">
           <div class="map" id="map-home"></div>
-          <div class="loc-pill">
-            <span class="ic" style="color:var(--green)"><i data-lucide="map-pin" style="width:16px;height:16px"></i></span>
-            <div><div class="t">Bitarap Türkmenistan şaýoly</div></div>
+
+          <!-- top: avatar + address -->
+          <div class="home-top">
+            <div class="home-av" data-go="profile">A</div>
+            <div class="home-addr">
+              <div class="ha-lab">Your address <span>›</span></div>
+              <div class="ha-street">Bitarap Türkmenistan şaýoly</div>
+            </div>
+            <div class="home-av ghost" data-go="profile"><i data-lucide="bell" style="width:18px;height:18px"></i></div>
           </div>
-          <div class="fab" style="right:16px; bottom:246px;">
-            <i data-lucide="locate-fixed" style="width:19px;height:19px"></i>
+
+          <!-- pickup pill on the map -->
+          <div class="pickup-pill">
+            <span class="pp-ic"><i data-lucide="person-standing" style="width:18px;height:18px"></i></span>
+            <div><div class="pp-t">Pickup</div><div class="pp-s">~3 min</div></div>
           </div>
+
+          <!-- locate FAB -->
+          <div class="fab" style="left:16px; bottom:290px;">
+            <i data-lucide="navigation" style="width:18px;height:18px"></i>
+          </div>
+
           <div class="sheet" style="bottom:76px;">
             <div class="sheet-handle"><div class="grab"></div></div>
-            <div class="field" data-go="picker">
-              <span class="ic"><i data-lucide="search" style="width:20px;height:20px"></i></span>
-              <span class="ph">Where to?</span>
+
+            <!-- where to -->
+            <div class="whereto" data-go="picker">
+              <span class="wt-car"><i data-lucide="car-front" style="width:18px;height:18px"></i></span>
+              <span class="wt-t">Where to?</span>
+              <span class="wt-arrow"><i data-lucide="arrow-right" style="width:19px;height:19px"></i></span>
             </div>
-            <div class="saved">
-              <div class="srow" data-go="cars">
-                <div class="sic"><i data-lucide="house" style="width:19px;height:19px"></i></div>
-                <div class="smeta"><div class="k">Home</div><div class="v">Parahat 7, jaý 42</div></div>
-                <span class="chev">›</span>
+
+            <!-- saved place cards -->
+            <div class="place-cards">
+              <div class="place-card" data-go="cars">
+                <div class="pc-name">Home</div>
+                <div class="pc-eta">25 min</div>
+                <span class="pc-car"><i data-lucide="car-front" style="width:26px;height:26px"></i></span>
               </div>
-              <div class="srow" data-go="cars">
-                <div class="sic"><i data-lucide="briefcase" style="width:18px;height:18px"></i></div>
-                <div class="smeta"><div class="k">Work</div><div class="v">Garaşsyzlyk şaýoly 15</div></div>
-                <span class="chev">›</span>
+              <div class="place-card" data-go="cars">
+                <div class="pc-name">Work</div>
+                <div class="pc-eta">27 min</div>
+                <span class="pc-car"><i data-lucide="car-front" style="width:26px;height:26px"></i></span>
+              </div>
+              <div class="place-card" data-go="cars">
+                <div class="pc-name">Airport</div>
+                <div class="pc-eta">30 min</div>
+                <span class="pc-car"><i data-lucide="car-front" style="width:26px;height:26px"></i></span>
+              </div>
+            </div>
+
+            <!-- services -->
+            <div class="services">
+              <div class="service-tile">
+                <span class="st-ic"><i data-lucide="package" style="width:20px;height:20px"></i></span>
+                <span class="st-t">Delivery</span>
+              </div>
+              <div class="service-tile">
+                <span class="st-ic"><i data-lucide="bike" style="width:20px;height:20px"></i></span>
+                <span class="st-t">Scooters</span>
               </div>
             </div>
           </div>
+
           <nav class="tabbar">
             <div class="tab on"><i data-lucide="house" style="width:22px;height:22px"></i>Home</div>
             <div class="tab" data-go="trip"><i data-lucide="car" style="width:22px;height:22px"></i>Trips</div>
@@ -577,15 +720,38 @@
           <div class="sheet">
             <div class="sheet-handle"><div class="grab"></div></div>
             <div class="dcard">
-              <div class="dtop">
-                <div class="av">S</div>
-                <div class="dn"><div class="n">Serdar Amanow</div><div class="r"><span class="st">★</span> 4.9 · 1 240 trips</div></div>
-                <div class="cbtn"><i data-lucide="phone" style="width:18px;height:18px"></i></div>
-                <div class="cbtn g" data-go="chat"><i data-lucide="message-circle" style="width:18px;height:18px"></i></div>
+              <div class="driver-hero">
+                <div class="dh-top">
+                  <div class="dh-veh">
+                    <div class="dh-plate">AG 5620 GH</div>
+                    <div class="dh-model">Toyota Camry · Ak reňk</div>
+                  </div>
+                  <div class="dh-eta">
+                    <div class="dh-min">3 min</div>
+                    <div class="dh-lbl">until pickup</div>
+                  </div>
+                </div>
+                <svg class="dh-car" viewBox="0 0 230 100" fill="none" aria-hidden="true">
+                  <path d="M12 68 Q12 58 24 55 L58 47 Q76 28 104 24 L150 24 Q178 24 198 40 L214 55 Q220 62 214 68 L200 70 Q198 58 186 58 Q174 58 172 70 L74 70 Q72 58 60 58 Q48 58 46 70 L18 70 Q12 70 12 68 Z" fill="rgba(255,255,255,.14)"/>
+                  <path d="M72 44 Q86 30 104 30 L146 30 Q162 30 172 42 Z" fill="rgba(255,255,255,.10)"/>
+                  <circle cx="60" cy="72" r="15" fill="rgba(255,255,255,.20)"/>
+                  <circle cx="186" cy="72" r="15" fill="rgba(255,255,255,.20)"/>
+                  <circle cx="60" cy="72" r="6.5" fill="rgba(18,21,26,.7)"/>
+                  <circle cx="186" cy="72" r="6.5" fill="rgba(18,21,26,.7)"/>
+                </svg>
+                <div class="dh-bottom">
+                  <div class="dh-av">S</div>
+                  <div class="dh-idn">
+                    <div class="dh-name">Serdar Amanow</div>
+                    <div class="dh-rate"><span class="st">★</span> 5.0</div>
+                  </div>
+                  <div class="dh-accent"></div>
+                </div>
               </div>
-              <div class="plate">
-                <div><div class="cn">Toyota Camry · Ak reňk</div><div class="cnum">AG 5620 GH</div></div>
-                <i data-lucide="car" style="width:34px;height:34px;color:#38463F"></i>
+              <div class="dactions">
+                <button class="dact" data-go="chat"><i data-lucide="message-circle" style="width:18px;height:18px"></i> Chat</button>
+                <button class="dact"><i data-lucide="phone" style="width:18px;height:18px"></i> Call</button>
+                <button class="dact"><i data-lucide="shield-check" style="width:18px;height:18px"></i> Safety</button>
               </div>
               <div class="route">
                 <div class="ritem"><span class="g"><span class="o"></span></span><span class="t">Bitarap Türkmenistan şaýoly</span></div>
@@ -742,7 +908,7 @@
     }
     function carHtml() {
       // Modern top-view car silhouette (reads cleanly as a car from above on the map)
-      return '<div class="mk mk-car"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M8.2 3h7.6a2 2 0 0 1 1.9 1.4l.85 2.9c.95.28 1.55 1.1 1.55 2.05v8.35c0 .77-.58 1.3-1.3 1.3h-1.4v1.35c0 .58-.5 1.05-1.1 1.05h-.9c-.6 0-1.1-.47-1.1-1.05V19H9.7v1.35c0 .58-.5 1.05-1.1 1.05h-.9c-.6 0-1.1-.47-1.1-1.05V19H5.2c-.72 0-1.3-.53-1.3-1.3V9.35c0-.95.6-1.77 1.55-2.05l.85-2.9A2 2 0 0 1 8.2 3Zm-.15 3.1L7.3 8.7h9.4l-.75-2.6a.7.7 0 0 0-.67-.5H8.72a.7.7 0 0 0-.67.5Z"/></svg></div>';
+      return '<div class="mk mk-car"><svg width="18" height="18" viewBox="0 0 24 24" fill="#16181C"><path d="M8.2 3h7.6a2 2 0 0 1 1.9 1.4l.85 2.9c.95.28 1.55 1.1 1.55 2.05v8.35c0 .77-.58 1.3-1.3 1.3h-1.4v1.35c0 .58-.5 1.05-1.1 1.05h-.9c-.6 0-1.1-.47-1.1-1.05V19H9.7v1.35c0 .58-.5 1.05-1.1 1.05h-.9c-.6 0-1.1-.47-1.1-1.05V19H5.2c-.72 0-1.3-.53-1.3-1.3V9.35c0-.95.6-1.77 1.55-2.05l.85-2.9A2 2 0 0 1 8.2 3Zm-.15 3.1L7.3 8.7h9.4l-.75-2.6a.7.7 0 0 0-.67-.5H8.72a.7.7 0 0 0-.67.5Z"/></svg></div>';
     }
     var carIcon = L.divIcon({ className:'', html: carHtml(), iconSize:[30,30], iconAnchor:[15,15] });
 
