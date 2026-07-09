@@ -7,6 +7,7 @@ import com.taxiplatform.driver.domain.model.Ride
 import com.taxiplatform.driver.domain.model.RideOffer
 import com.taxiplatform.driver.domain.model.RideStatusUpdate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 interface AuthRepository {
 	suspend fun register(email: String, password: String, fullName: String, phone: String?): Result<AuthSession>
@@ -21,6 +22,7 @@ interface DriverRepository {
 }
 
 interface RideRepository {
+	suspend fun getRide(rideId: String): Result<Ride>
 	suspend fun accept(rideId: String): Result<Ride>
 	suspend fun reject(rideId: String): Result<Unit>
 	suspend fun arrive(rideId: String): Result<Ride>
@@ -28,10 +30,17 @@ interface RideRepository {
 	suspend fun complete(rideId: String): Result<Ride>
 }
 
-/** Real-time push channel: ride offers and status changes from the backend's STOMP topics. */
+/**
+ * Real-time push channel: ride offers and status changes from the backend's
+ * STOMP topics. [currentOffer] is a StateFlow (not a plain event stream) so
+ * that a screen navigating in *after* the offer arrived (e.g. Home reacting
+ * to it and pushing to the Offer screen) still sees it — a cold/no-replay
+ * flow would silently drop the offer if nothing was collecting it yet.
+ */
 interface RideEventsRepository {
 	fun connect(driverId: String)
 	fun disconnect()
-	fun observeOffers(): Flow<RideOffer>
+	val currentOffer: StateFlow<RideOffer?>
+	fun clearOffer()
 	fun observeRideStatus(rideId: String): Flow<RideStatusUpdate>
 }
