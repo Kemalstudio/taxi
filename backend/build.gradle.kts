@@ -10,6 +10,7 @@ group = "com.taxiplatform"
 version = "0.1.0"
 
 repositories {
+	maven { url = uri("https://repo1.maven.org/maven2/") }
 	mavenCentral()
 }
 
