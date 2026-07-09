@@ -10,6 +10,7 @@ import com.taxiplatform.domain.ride.RideOffer
 import com.taxiplatform.domain.ride.RideOfferStatus
 import com.taxiplatform.domain.user.User
 import com.taxiplatform.infrastructure.persistence.entity.RideOfferStatusEntity
+import com.taxiplatform.infrastructure.persistence.entity.RideStatusEntity
 import com.taxiplatform.infrastructure.persistence.jpa.SpringDataDriverProfileRepository
 import com.taxiplatform.infrastructure.persistence.jpa.SpringDataRideOfferRepository
 import com.taxiplatform.infrastructure.persistence.jpa.SpringDataRideRepository
@@ -41,6 +42,20 @@ class JpaRideRepositoryAdapter(
 ) : RideRepository {
 	override fun findById(id: UUID): Ride? = delegate.findById(id).orElse(null)?.toDomain()
 	override fun save(ride: Ride): Ride = delegate.save(ride.toEntity()).toDomain()
+
+	override fun findDueScheduled(now: Instant): List<Ride> =
+		delegate.findByStatusAndScheduledAtLessThanEqual(RideStatusEntity.SCHEDULED, now).map { it.toDomain() }
+
+	override fun findActiveByDriver(driverId: UUID): Ride? =
+		delegate.findFirstByDriverIdAndStatusInOrderByRequestedAtDesc(driverId, ACTIVE_STATUSES)?.toDomain()
+
+	private companion object {
+		val ACTIVE_STATUSES = listOf(
+			RideStatusEntity.ACCEPTED,
+			RideStatusEntity.DRIVER_ARRIVED,
+			RideStatusEntity.IN_PROGRESS,
+		)
+	}
 }
 
 @Repository
