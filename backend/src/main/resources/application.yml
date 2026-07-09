@@ -37,7 +37,8 @@ taxi:
     password: ${ADMIN_PASSWORD:AdminSecret123}
     full-name: ${ADMIN_FULL_NAME:Platform Admin}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    # 5173 = admin dashboard, 5174/5175 = Taksi Go website
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5175}
 
 springdoc:
   swagger-ui:
