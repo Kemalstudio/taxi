@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { User, Lock } from "lucide-react";
 import { useI18n } from "../i18n";
+import { register, login, ApiError, NetworkError } from "../lib/api";
 
 export interface Session {
   name: string;
   phone: string;
+  /** false when the backend was unreachable and we signed in locally (demo). */
+  online: boolean;
 }
 
 export function LoginModal({
@@ -20,14 +23,32 @@ export function LoginModal({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     if (!phone.trim()) {
       setErr(t("auth.needPhone"));
       return;
     }
-    // Client-side session for now (backend auth is a later phase).
-    onAuth({ name: name.trim() || "Ýolagçy", phone: phone.trim() });
+    setErr(null);
+    setBusy(true);
+    const nm = name.trim() || "Ýolagçy";
+    try {
+      if (tab === "register") await register(phone.trim(), password, nm);
+      else await login(phone.trim(), password);
+      onAuth({ name: nm, phone: phone.trim(), online: true });
+    } catch (e) {
+      if (e instanceof NetworkError) {
+        // Backend not running here — continue in demo mode so the site stays usable.
+        onAuth({ name: nm, phone: phone.trim(), online: false });
+      } else if (e instanceof ApiError) {
+        setErr(e.message);
+      } else {
+        setErr(String(e));
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -84,8 +105,8 @@ export function LoginModal({
 
         {err && <div className="auth-err">{err}</div>}
 
-        <button className="auth-submit" onClick={submit}>
-          {tab === "login" ? t("auth.loginBtn") : t("auth.registerBtn")}
+        <button className="auth-submit" onClick={submit} disabled={busy}>
+          {busy ? "…" : tab === "login" ? t("auth.loginBtn") : t("auth.registerBtn")}
         </button>
       </div>
     </div>
