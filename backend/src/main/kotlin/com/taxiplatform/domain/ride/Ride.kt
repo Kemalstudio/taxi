@@ -5,6 +5,7 @@ import java.time.Instant
 import java.util.UUID
 
 enum class RideStatus {
+	SCHEDULED,
 	REQUESTED,
 	SEARCHING,
 	ACCEPTED,
@@ -23,6 +24,7 @@ data class Ride(
 	val dropoff: GeoPoint,
 	val status: RideStatus,
 	val requestedAt: Instant,
+	val scheduledAt: Instant?,
 	val acceptedAt: Instant?,
 	val arrivedAt: Instant?,
 	val startedAt: Instant?,
