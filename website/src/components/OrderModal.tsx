@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useI18n } from "../i18n";
 
 export interface OrderSummary {
   title: string;
@@ -7,6 +8,7 @@ export interface OrderSummary {
 }
 
 export function OrderModal({ summary, onClose }: { summary: OrderSummary; onClose: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
@@ -24,7 +26,7 @@ export function OrderModal({ summary, onClose }: { summary: OrderSummary; onClos
           ))}
         </div>
         <button className="close" onClick={onClose}>
-          Готово
+          {t("m.done")}
         </button>
       </div>
     </div>
