@@ -10,6 +10,8 @@ class RideRepositoryImpl @Inject constructor(
 	private val rideApi: RideApi,
 ) : RideRepository {
 
+	override suspend fun getRide(rideId: String): Result<Ride> = runCatching { rideApi.getRide(rideId).toDomain() }
+
 	override suspend fun accept(rideId: String): Result<Ride> = runCatching { rideApi.accept(rideId).toDomain() }
 
 	override suspend fun reject(rideId: String): Result<Unit> = runCatching {
