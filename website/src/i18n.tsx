@@ -49,6 +49,7 @@ const RU: Dict = {
   "hint.cash": "Оплата наличными водителю (манат)",
   "hint.gps": "Определяем ваше местоположение…",
   "hint.gpsErr": "Не удалось определить местоположение",
+  "hint.gpsDenied": "Доступ к геолокации запрещён — разрешите в браузере",
   "hint.gpsOk": "Местоположение определено",
   "m.orderTitle": "Заказ принят",
   "m.orderSub": "Ищем ближайшего водителя…",
@@ -83,6 +84,9 @@ const RU: Dict = {
   "footer.agreement": "Пользовательское соглашение",
   "footer.legal": "Правовая информация",
   "net.offline": "Офлайн-режим · карта из кэша",
+  "off.download": "Скачать карту (офлайн)",
+  "off.downloading": "Загрузка…",
+  "off.done": "Карта сохранена",
 };
 
 const EN: Dict = {
@@ -124,6 +128,7 @@ const EN: Dict = {
   "hint.cash": "Pay the driver in cash (manat)",
   "hint.gps": "Finding your location…",
   "hint.gpsErr": "Couldn’t get your location",
+  "hint.gpsDenied": "Location blocked — allow it in the browser",
   "hint.gpsOk": "Location detected",
   "m.orderTitle": "Order placed",
   "m.orderSub": "Finding the nearest driver…",
@@ -158,6 +163,9 @@ const EN: Dict = {
   "footer.agreement": "Terms of use",
   "footer.legal": "Legal",
   "net.offline": "Offline · map from cache",
+  "off.download": "Download map (offline)",
+  "off.downloading": "Downloading…",
+  "off.done": "Map saved",
 };
 
 const TK: Dict = {
@@ -199,6 +207,7 @@ const TK: Dict = {
   "hint.cash": "Sürüjä nagt töläň (manat)",
   "hint.gps": "Ýerleşişiňiz kesgitlenýär…",
   "hint.gpsErr": "Ýerleşişi kesgitläp bolmady",
+  "hint.gpsDenied": "Ýerleşişe rugsat ýok — brauzerde rugsat beriň",
   "hint.gpsOk": "Ýerleşiş kesgitlendi",
   "m.orderTitle": "Sargyt kabul edildi",
   "m.orderSub": "Iň ýakyn sürüjini gözleýäris…",
@@ -233,6 +242,9 @@ const TK: Dict = {
   "footer.agreement": "Ulanyş şertnamasy",
   "footer.legal": "Hukuk maglumaty",
   "net.offline": "Oflaýn · karta keşden",
+  "off.download": "Kartany ýükle (oflaýn)",
+  "off.downloading": "Ýüklenýär…",
+  "off.done": "Karta ýatda saklandy",
 };
 
 const DICTS: Record<Lang, Dict> = { ru: RU, en: EN, tk: TK };
