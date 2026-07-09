@@ -9,7 +9,6 @@ import javax.inject.Inject
 class RideRepositoryImpl @Inject constructor(
 	private val rideApi: RideApi,
 ) : RideRepository {
-
 	
 	override suspend fun getRide(rideId: String): Result<Ride> = runCatching { rideApi.getRide(rideId).toDomain() }
 
