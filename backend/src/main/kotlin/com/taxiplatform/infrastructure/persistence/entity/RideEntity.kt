@@ -60,6 +60,18 @@ class RideEntity(
 
 	@Column(name = "cancelled_reason")
 	val cancelledReason: String?,
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	val tariff: RideTariffEntity = RideTariffEntity.ECONOMY,
+
+	val fare: Int?,
+
+	@Column(name = "promo_code")
+	val promoCode: String?,
+
+	@Column(name = "discount_applied")
+	val discountApplied: Int?,
 )
 
 enum class RideStatusEntity {
@@ -72,4 +84,11 @@ enum class RideStatusEntity {
 	COMPLETED,
 	CANCELLED,
 	NO_DRIVERS_FOUND,
+}
+
+enum class RideTariffEntity {
+	ECONOMY,
+	COMFORT,
+	BUSINESS,
+	ELECTRO,
 }
