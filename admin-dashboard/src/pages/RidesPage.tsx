@@ -68,6 +68,8 @@ export function RidesPage() {
                 <tr className="border-b border-white/5">
                   <th className="px-5 py-3 font-medium">Ride</th>
                   <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Tariff</th>
+                  <th className="px-5 py-3 font-medium">Fare</th>
                   <th className="px-5 py-3 font-medium">Pickup</th>
                   <th className="px-5 py-3 font-medium">Dropoff</th>
                   <th className="px-5 py-3 font-medium">Requested</th>
@@ -79,6 +81,13 @@ export function RidesPage() {
                     <td className="px-5 py-3 font-mono text-xs text-mist-400">{ride.id.slice(0, 8)}</td>
                     <td className="px-5 py-3">
                       <StatusBadge status={ride.status} />
+                    </td>
+                    <td className="px-5 py-3 text-mist-300">{ride.tariff.toLowerCase()}</td>
+                    <td className="px-5 py-3 tnum text-mist-300">
+                      {ride.fare != null ? `${ride.fare} TMT` : "—"}
+                      {ride.discountApplied ? (
+                        <span className="ml-1 text-xs text-success">(−{ride.discountApplied})</span>
+                      ) : null}
                     </td>
                     <td className="px-5 py-3 tnum text-mist-300">{coord(ride.pickup.lat, ride.pickup.lng)}</td>
                     <td className="px-5 py-3 tnum text-mist-300">{coord(ride.dropoff.lat, ride.dropoff.lng)}</td>
