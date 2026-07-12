@@ -10,6 +10,8 @@ export type RideStatus =
 
 export type DriverStatus = "OFFLINE" | "ONLINE" | "BUSY";
 
+export type RideTariff = "ECONOMY" | "COMFORT" | "BUSINESS" | "ELECTRO";
+
 export interface AuthResponse {
   userId: string;
   role: "PASSENGER" | "DRIVER" | "ADMIN";
@@ -45,6 +47,20 @@ export interface Ride {
   completedAt: string | null;
   cancelledAt: string | null;
   cancelledReason: string | null;
+  tariff: RideTariff;
+  fare: number | null;
+  promoCode: string | null;
+  discountApplied: number | null;
+}
+
+export interface SosAlert {
+  id: string;
+  rideId: string;
+  userId: string;
+  lat: number;
+  lng: number;
+  note: string | null;
+  createdAt: string;
 }
 
 export interface AdminDriver {
