@@ -2,9 +2,11 @@ package com.taxiplatform.api.error
 
 import com.taxiplatform.application.auth.EmailAlreadyRegisteredException
 import com.taxiplatform.application.auth.InvalidCredentialsException
+import com.taxiplatform.application.ride.AlreadyRatedException
 import com.taxiplatform.application.ride.DriverProfileNotFoundException
 import com.taxiplatform.application.ride.InvalidRideStateException
 import com.taxiplatform.application.ride.NoPendingOfferException
+import com.taxiplatform.application.ride.RideAccessDeniedException
 import com.taxiplatform.application.ride.RideNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -36,8 +38,11 @@ class GlobalExceptionHandler {
 	@ExceptionHandler(RideNotFoundException::class, DriverProfileNotFoundException::class)
 	fun handleNotFound(ex: RuntimeException) = respond(HttpStatus.NOT_FOUND, ex.message)
 
-	@ExceptionHandler(NoPendingOfferException::class, InvalidRideStateException::class)
+	@ExceptionHandler(NoPendingOfferException::class, InvalidRideStateException::class, AlreadyRatedException::class)
 	fun handleConflictState(ex: RuntimeException) = respond(HttpStatus.CONFLICT, ex.message)
+
+	@ExceptionHandler(RideAccessDeniedException::class)
+	fun handleForbidden(ex: RideAccessDeniedException) = respond(HttpStatus.FORBIDDEN, ex.message)
 
 	@ExceptionHandler(MethodArgumentNotValidException::class)
 	fun handleValidation(ex: MethodArgumentNotValidException): ResponseEntity<ApiError> {
