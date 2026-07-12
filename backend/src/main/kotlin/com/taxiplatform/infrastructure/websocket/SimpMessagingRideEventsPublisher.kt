@@ -1,12 +1,16 @@
 package com.taxiplatform.infrastructure.websocket
 
 import com.taxiplatform.api.dto.GeoPointDto
+import com.taxiplatform.api.dto.RideChatMessage
 import com.taxiplatform.api.dto.RideLocationMessage
 import com.taxiplatform.api.dto.RideOfferMessage
 import com.taxiplatform.api.dto.RideStatusMessage
+import com.taxiplatform.api.dto.SosAlertMessage
 import com.taxiplatform.application.ports.RideEventsPublisher
 import com.taxiplatform.domain.geo.GeoPoint
 import com.taxiplatform.domain.ride.Ride
+import com.taxiplatform.domain.ride.RideMessage
+import com.taxiplatform.domain.ride.SosIncident
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -42,6 +46,33 @@ class SimpMessagingRideEventsPublisher(
 		messagingTemplate.convertAndSend(
 			"/topic/ride/$rideId",
 			RideLocationMessage(rideId = rideId, driverId = driverId, lat = point.lat, lng = point.lng),
+		)
+	}
+
+	override fun rideMessage(message: RideMessage) {
+		messagingTemplate.convertAndSend(
+			"/topic/ride/${message.rideId}",
+			RideChatMessage(
+				rideId = message.rideId,
+				senderId = message.senderId,
+				senderRole = message.senderRole.name,
+				body = message.body,
+				createdAt = message.createdAt,
+			),
+		)
+	}
+
+	override fun sosTriggered(incident: SosIncident) {
+		messagingTemplate.convertAndSend(
+			"/topic/admin/sos",
+			SosAlertMessage(
+				incidentId = incident.id,
+				rideId = incident.rideId,
+				userId = incident.userId,
+				lat = incident.point.lat,
+				lng = incident.point.lng,
+				createdAt = incident.createdAt,
+			),
 		)
 	}
 }
