@@ -16,6 +16,13 @@ enum class RideStatus {
 	NO_DRIVERS_FOUND,
 }
 
+enum class RideTariff {
+	ECONOMY,
+	COMFORT,
+	BUSINESS,
+	ELECTRO,
+}
+
 data class Ride(
 	val id: UUID,
 	val passengerId: UUID,
@@ -31,4 +38,8 @@ data class Ride(
 	val completedAt: Instant?,
 	val cancelledAt: Instant?,
 	val cancelledReason: String?,
+	val tariff: RideTariff = RideTariff.ECONOMY,
+	val fare: Int? = null,
+	val promoCode: String? = null,
+	val discountApplied: Int? = null,
 )
