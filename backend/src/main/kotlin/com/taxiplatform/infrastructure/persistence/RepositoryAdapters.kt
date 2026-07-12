@@ -1,21 +1,39 @@
 package com.taxiplatform.infrastructure.persistence
 
 import com.taxiplatform.application.ports.DriverProfileRepository
+import com.taxiplatform.application.ports.PromoCodeRepository
+import com.taxiplatform.application.ports.PromoRedemptionRepository
+import com.taxiplatform.application.ports.RideMessageRepository
 import com.taxiplatform.application.ports.RideOfferRepository
+import com.taxiplatform.application.ports.RideRatingRepository
 import com.taxiplatform.application.ports.RideRepository
+import com.taxiplatform.application.ports.SosIncidentRepository
 import com.taxiplatform.application.ports.UserRepository
 import com.taxiplatform.domain.driver.DriverProfile
+import com.taxiplatform.domain.promo.PromoCode
+import com.taxiplatform.domain.promo.PromoRedemption
 import com.taxiplatform.domain.ride.Ride
+import com.taxiplatform.domain.ride.RideMessage
 import com.taxiplatform.domain.ride.RideOffer
 import com.taxiplatform.domain.ride.RideOfferStatus
+import com.taxiplatform.domain.ride.RideRating
+import com.taxiplatform.domain.ride.SosIncident
 import com.taxiplatform.domain.user.User
 import com.taxiplatform.infrastructure.persistence.entity.RideOfferStatusEntity
 import com.taxiplatform.infrastructure.persistence.entity.RideStatusEntity
 import com.taxiplatform.infrastructure.persistence.jpa.SpringDataDriverProfileRepository
+import com.taxiplatform.infrastructure.persistence.jpa.SpringDataPromoCodeRepository
+import com.taxiplatform.infrastructure.persistence.jpa.SpringDataPromoRedemptionRepository
+import com.taxiplatform.infrastructure.persistence.jpa.SpringDataRideMessageRepository
 import com.taxiplatform.infrastructure.persistence.jpa.SpringDataRideOfferRepository
+import com.taxiplatform.infrastructure.persistence.jpa.SpringDataRideRatingRepository
 import com.taxiplatform.infrastructure.persistence.jpa.SpringDataRideRepository
+import com.taxiplatform.infrastructure.persistence.jpa.SpringDataSosIncidentRepository
 import com.taxiplatform.infrastructure.persistence.jpa.SpringDataUserRepository
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Repository
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 import java.util.UUID
 
@@ -74,4 +92,56 @@ class JpaRideOfferRepositoryAdapter(
 		delegate.findByStatusAndExpiresAtBefore(RideOfferStatusEntity.PENDING, now).map { it.toDomain() }
 
 	override fun save(offer: RideOffer): RideOffer = delegate.save(offer.toEntity()).toDomain()
+}
+
+@Repository
+class JpaRideRatingRepositoryAdapter(
+	private val delegate: SpringDataRideRatingRepository,
+) : RideRatingRepository {
+	override fun existsByRideIdAndRaterId(rideId: UUID, raterId: UUID): Boolean =
+		delegate.existsByRideIdAndRaterId(rideId, raterId)
+
+	override fun save(rating: RideRating): RideRating = delegate.save(rating.toEntity()).toDomain()
+
+	override fun averageForRatee(rateeId: UUID): BigDecimal? =
+		delegate.averageStarsForRatee(rateeId)?.let { BigDecimal(it).setScale(2, RoundingMode.HALF_UP) }
+}
+
+@Repository
+class JpaRideMessageRepositoryAdapter(
+	private val delegate: SpringDataRideMessageRepository,
+) : RideMessageRepository {
+	override fun save(message: RideMessage): RideMessage = delegate.save(message.toEntity()).toDomain()
+
+	override fun findByRideId(rideId: UUID): List<RideMessage> =
+		delegate.findByRideIdOrderByCreatedAtAsc(rideId).map { it.toDomain() }
+}
+
+@Repository
+class JpaSosIncidentRepositoryAdapter(
+	private val delegate: SpringDataSosIncidentRepository,
+) : SosIncidentRepository {
+	override fun save(incident: SosIncident): SosIncident = delegate.save(incident.toEntity()).toDomain()
+
+	override fun findRecent(limit: Int): List<SosIncident> =
+		delegate.findAllByOrderByCreatedAtDesc(PageRequest.of(0, limit)).map { it.toDomain() }
+}
+
+@Repository
+class JpaPromoCodeRepositoryAdapter(
+	private val delegate: SpringDataPromoCodeRepository,
+) : PromoCodeRepository {
+	override fun findByCode(code: String): PromoCode? = delegate.findByCode(code)?.toDomain()
+
+	override fun save(promo: PromoCode): PromoCode = delegate.save(promo.toEntity()).toDomain()
+}
+
+@Repository
+class JpaPromoRedemptionRepositoryAdapter(
+	private val delegate: SpringDataPromoRedemptionRepository,
+) : PromoRedemptionRepository {
+	override fun existsByPromoIdAndUserId(promoId: UUID, userId: UUID): Boolean =
+		delegate.existsByPromoIdAndUserId(promoId, userId)
+
+	override fun save(redemption: PromoRedemption): PromoRedemption = delegate.save(redemption.toEntity()).toDomain()
 }
