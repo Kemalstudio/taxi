@@ -1,14 +1,27 @@
 package com.taxiplatform.api.rest
 
 import com.taxiplatform.api.dto.CancelRideRequest
+import com.taxiplatform.api.dto.MessageResponse
+import com.taxiplatform.api.dto.RateRideRequest
+import com.taxiplatform.api.dto.RatingResponse
 import com.taxiplatform.api.dto.RequestRideRequest
 import com.taxiplatform.api.dto.RideResponse
+import com.taxiplatform.api.dto.SendMessageRequest
+import com.taxiplatform.api.dto.SosIncidentResponse
+import com.taxiplatform.api.dto.TriggerSosRequest
+import com.taxiplatform.application.chat.ListRideMessagesUseCase
+import com.taxiplatform.application.chat.SendRideMessageCommand
+import com.taxiplatform.application.chat.SendRideMessageUseCase
 import com.taxiplatform.application.dispatch.DispatchService
+import com.taxiplatform.application.rating.RateRideCommand
+import com.taxiplatform.application.rating.RateRideUseCase
 import com.taxiplatform.application.ride.CancelRideUseCase
 import com.taxiplatform.application.ride.DriverRideLifecycleUseCase
 import com.taxiplatform.application.ride.GetRideUseCase
 import com.taxiplatform.application.ride.RequestRideCommand
 import com.taxiplatform.application.ride.RequestRideUseCase
+import com.taxiplatform.application.safety.TriggerSosCommand
+import com.taxiplatform.application.safety.TriggerSosUseCase
 import com.taxiplatform.domain.geo.GeoPoint
 import com.taxiplatform.infrastructure.security.AuthenticatedPrincipal
 import jakarta.validation.Valid
@@ -32,6 +45,10 @@ class RideController(
 	private val cancelRideUseCase: CancelRideUseCase,
 	private val dispatchService: DispatchService,
 	private val driverRideLifecycleUseCase: DriverRideLifecycleUseCase,
+	private val rateRideUseCase: RateRideUseCase,
+	private val sendRideMessageUseCase: SendRideMessageUseCase,
+	private val listRideMessagesUseCase: ListRideMessagesUseCase,
+	private val triggerSosUseCase: TriggerSosUseCase,
 ) {
 
 	@PostMapping
@@ -46,6 +63,9 @@ class RideController(
 				pickup = GeoPoint(request.pickup.lat, request.pickup.lng),
 				dropoff = GeoPoint(request.dropoff.lat, request.dropoff.lng),
 				scheduledAt = request.scheduledAt,
+				tariff = request.tariff,
+				fare = request.fare,
+				promoCode = request.promoCode,
 			),
 		)
 		return ResponseEntity.status(HttpStatus.CREATED).body(RideResponse.from(ride))
@@ -108,4 +128,53 @@ class RideController(
 		@PathVariable rideId: UUID,
 	): ResponseEntity<RideResponse> =
 		ResponseEntity.ok(RideResponse.from(driverRideLifecycleUseCase.completeRide(rideId, principal.userId)))
+
+	@PostMapping("/{rideId}/rating")
+	@PreAuthorize("hasRole('PASSENGER')")
+	fun rateRide(
+		@AuthenticationPrincipal principal: AuthenticatedPrincipal,
+		@PathVariable rideId: UUID,
+		@Valid @RequestBody request: RateRideRequest,
+	): ResponseEntity<RatingResponse> {
+		val rating = rateRideUseCase.execute(
+			RateRideCommand(rideId = rideId, raterId = principal.userId, stars = request.stars, comment = request.comment),
+		)
+		return ResponseEntity.status(HttpStatus.CREATED).body(RatingResponse.from(rating))
+	}
+
+	@GetMapping("/{rideId}/messages")
+	fun getMessages(
+		@AuthenticationPrincipal principal: AuthenticatedPrincipal,
+		@PathVariable rideId: UUID,
+	): ResponseEntity<List<MessageResponse>> =
+		ResponseEntity.ok(listRideMessagesUseCase.execute(rideId, principal.userId).map(MessageResponse::from))
+
+	@PostMapping("/{rideId}/messages")
+	fun sendMessage(
+		@AuthenticationPrincipal principal: AuthenticatedPrincipal,
+		@PathVariable rideId: UUID,
+		@Valid @RequestBody request: SendMessageRequest,
+	): ResponseEntity<MessageResponse> {
+		val message = sendRideMessageUseCase.execute(
+			SendRideMessageCommand(rideId = rideId, senderId = principal.userId, body = request.body),
+		)
+		return ResponseEntity.status(HttpStatus.CREATED).body(MessageResponse.from(message))
+	}
+
+	@PostMapping("/{rideId}/sos")
+	fun triggerSos(
+		@AuthenticationPrincipal principal: AuthenticatedPrincipal,
+		@PathVariable rideId: UUID,
+		@Valid @RequestBody request: TriggerSosRequest,
+	): ResponseEntity<SosIncidentResponse> {
+		val incident = triggerSosUseCase.execute(
+			TriggerSosCommand(
+				rideId = rideId,
+				userId = principal.userId,
+				point = GeoPoint(request.point.lat, request.point.lng),
+				note = request.note,
+			),
+		)
+		return ResponseEntity.status(HttpStatus.CREATED).body(SosIncidentResponse.from(incident))
+	}
 }
