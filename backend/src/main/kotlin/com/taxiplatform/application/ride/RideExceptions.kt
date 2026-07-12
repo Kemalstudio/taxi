@@ -10,3 +10,8 @@ class NoPendingOfferException(rideId: UUID, driverId: UUID) :
 class InvalidRideStateException(message: String) : RuntimeException(message)
 
 class DriverProfileNotFoundException(driverId: UUID) : RuntimeException("Driver profile not found: $driverId")
+
+/** The caller is authenticated but is neither the passenger nor the driver of this ride. */
+class RideAccessDeniedException(message: String) : RuntimeException(message)
+
+class AlreadyRatedException(rideId: UUID) : RuntimeException("Ride $rideId was already rated by this user")
