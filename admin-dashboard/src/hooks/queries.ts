@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import type { AdminDriver, OnlineDriver, PlatformStats, Ride, RideStatus } from "../types";
+import type { AdminDriver, OnlineDriver, PlatformStats, Ride, RideStatus, SosAlert } from "../types";
 
 export function useStats() {
   return useQuery({
@@ -35,5 +35,13 @@ export function useOnlineDrivers() {
     queryKey: ["online-drivers"],
     queryFn: async () => (await api.get<OnlineDriver[]>("/admin/drivers/online")).data,
     refetchInterval: 4000,
+  });
+}
+
+export function useSos(limit = 20) {
+  return useQuery({
+    queryKey: ["sos", limit],
+    queryFn: async () => (await api.get<SosAlert[]>("/admin/sos", { params: { limit } })).data,
+    refetchInterval: 5000,
   });
 }
