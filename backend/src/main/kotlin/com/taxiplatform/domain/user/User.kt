@@ -20,4 +20,5 @@ data class User(
 	val fullName: String,
 	val phone: String?,
 	val createdAt: Instant,
+	val loyaltyPoints: Int = 0,
 )
