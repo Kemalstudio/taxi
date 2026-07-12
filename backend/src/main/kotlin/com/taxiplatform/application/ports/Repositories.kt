@@ -1,10 +1,16 @@
 package com.taxiplatform.application.ports
 
 import com.taxiplatform.domain.driver.DriverProfile
+import com.taxiplatform.domain.promo.PromoCode
+import com.taxiplatform.domain.promo.PromoRedemption
 import com.taxiplatform.domain.ride.Ride
+import com.taxiplatform.domain.ride.RideMessage
 import com.taxiplatform.domain.ride.RideOffer
 import com.taxiplatform.domain.ride.RideOfferStatus
+import com.taxiplatform.domain.ride.RideRating
+import com.taxiplatform.domain.ride.SosIncident
 import com.taxiplatform.domain.user.User
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -36,4 +42,32 @@ interface RideOfferRepository {
 	fun findByRideIdAndStatus(rideId: UUID, status: RideOfferStatus): List<RideOffer>
 	fun findExpiredPending(now: Instant): List<RideOffer>
 	fun save(offer: RideOffer): RideOffer
+}
+
+interface RideRatingRepository {
+	fun existsByRideIdAndRaterId(rideId: UUID, raterId: UUID): Boolean
+	fun save(rating: RideRating): RideRating
+
+	/** Null when the ratee has no ratings yet. */
+	fun averageForRatee(rateeId: UUID): BigDecimal?
+}
+
+interface RideMessageRepository {
+	fun save(message: RideMessage): RideMessage
+	fun findByRideId(rideId: UUID): List<RideMessage>
+}
+
+interface SosIncidentRepository {
+	fun save(incident: SosIncident): SosIncident
+	fun findRecent(limit: Int): List<SosIncident>
+}
+
+interface PromoCodeRepository {
+	fun findByCode(code: String): PromoCode?
+	fun save(promo: PromoCode): PromoCode
+}
+
+interface PromoRedemptionRepository {
+	fun existsByPromoIdAndUserId(promoId: UUID, userId: UUID): Boolean
+	fun save(redemption: PromoRedemption): PromoRedemption
 }
