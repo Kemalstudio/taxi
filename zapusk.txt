@@ -1,0 +1,21 @@
+# 1. БД и Redis
+cd C:\Users\KA\Desktop\taxi
+docker compose up -d postgres redis
+
+# 2. Backend
+cd backend
+$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/taxi"
+$env:SPRING_DATASOURCE_USERNAME="taxi"
+$env:SPRING_DATASOURCE_PASSWORD="taxi"
+./gradlew.bat bootRun
+
+# 3. Сайт (в отдельном терминале)
+cd website
+npm run dev
+
+# 4. Админка (в ещё одном терминале)
+cd admin-dashboard
+npm run dev
+
+
+Логин админки: admin@taxi.local / AdminSecret123.

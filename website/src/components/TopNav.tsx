@@ -7,9 +7,10 @@ import type { Session } from "./LoginModal";
 interface Props {
   session: Session | null;
   onSignIn: () => void;
+  onProfile: () => void;
 }
 
-export function TopNav({ session, onSignIn }: Props) {
+export function TopNav({ session, onSignIn, onProfile }: Props) {
   const { theme, toggle } = useTheme();
   const { lang, setLang, t } = useI18n();
   const [langOpen, setLangOpen] = useState(false);
@@ -65,9 +66,9 @@ export function TopNav({ session, onSignIn }: Props) {
           </div>
 
           {session ? (
-            <div className="avatar" title={session.name}>
+            <button className="avatar" title={session.name} onClick={onProfile}>
               {session.name.charAt(0).toUpperCase()}
-            </div>
+            </button>
           ) : (
             <button className="sign-btn" onClick={onSignIn}>
               {t("nav.signin")}

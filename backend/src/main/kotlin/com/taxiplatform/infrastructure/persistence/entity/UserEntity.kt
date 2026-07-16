@@ -32,6 +32,9 @@ class UserEntity(
 
 	@Column(name = "created_at", nullable = false)
 	val createdAt: Instant,
+
+	@Column(name = "loyalty_points", nullable = false)
+	val loyaltyPoints: Int = 0,
 )
 
 enum class RoleEntity {

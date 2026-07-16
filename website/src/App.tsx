@@ -7,20 +7,38 @@ import { ZoomControls } from "./components/ZoomControls";
 import { AddressCard, type FieldTarget } from "./components/AddressCard";
 import { SavedGrid } from "./components/SavedGrid";
 import { OptionsCard, type OptionsState } from "./components/OptionsCard";
+import { TariffCard } from "./components/TariffCard";
+import { PromoField } from "./components/PromoField";
 import { ScheduleCard } from "./components/ScheduleCard";
 import { OrderModal, type OrderSummary } from "./components/OrderModal";
 import { LoginModal, type Session } from "./components/LoginModal";
 import { OfflineBadge } from "./components/OfflineBadge";
 import { OfflineDownload } from "./components/OfflineDownload";
+import { ActiveRideCard } from "./components/ActiveRideCard";
+import { ChatPanel } from "./components/ChatPanel";
+import { RatingModal } from "./components/RatingModal";
+import { SosSheet } from "./components/SosSheet";
+import { ToastStack, useToasts, requestNotificationPermission } from "./components/Toast";
 import { DEFAULT_FROM } from "./data/places";
 import { priceFor, routeThrough } from "./lib/routing";
-import { createRide, token as apiToken, ApiError, NetworkError } from "./lib/api";
-import { RideSocket } from "./lib/rideSocket";
+import {
+  createRide,
+  getRide,
+  cancelRide,
+  token as apiToken,
+  userId as apiUserId,
+  role as apiRole,
+  ApiError,
+  NetworkError,
+  type PromoPreview,
+} from "./lib/api";
+import { RideSocket, type RideChatMsg } from "./lib/rideSocket";
 import { ProfileModal } from "./components/ProfileModal";
 import { useI18n } from "./i18n";
-import type { AddressField, GeoPoint, RideMode, RouteResult, StopRow } from "./types";
+import type { AddressField, GeoPoint, RideDetails, RideMode, RideStatus, RideTariff, RouteResult, StopRow } from "./types";
 
 const emptyField = (): AddressField => ({ text: "", point: null });
+const ENDED_STATUSES: RideStatus[] = ["COMPLETED", "CANCELLED", "NO_DRIVERS_FOUND"];
 
 export default function App() {
   const { t } = useI18n();
@@ -50,6 +68,9 @@ export default function App() {
     wheelchair: false,
   });
 
+  const [tariff, setTariff] = useState<RideTariff>("ECONOMY");
+  const [promo, setPromo] = useState<PromoPreview | null>(null);
+
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [summary, setSummary] = useState<OrderSummary | null>(null);
   const [hintKey, setHintKey] = useState("hint.default");
@@ -58,11 +79,66 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const socketRef = useRef<RideSocket | null>(null);
 
-  const startTracking = (rideId: string) => {
+  const [activeRide, setActiveRide] = useState<RideDetails | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const chatOpenRef = useRef(false);
+  const [chatIncoming, setChatIncoming] = useState<RideChatMsg[]>([]);
+  const [unreadChat, setUnreadChat] = useState(false);
+  const [sosOpen, setSosOpen] = useState(false);
+  const [ratingRideId, setRatingRideId] = useState<string | null>(null);
+  const { toasts, notify } = useToasts();
+
+  useEffect(() => {
+    chatOpenRef.current = chatOpen;
+  }, [chatOpen]);
+
+  const startTracking = (rideId: string, fare: number | null) => {
     socketRef.current?.disconnect();
     setDriver(null);
+    setChatIncoming([]);
+    setUnreadChat(false);
+    setChatOpen(false);
+    setActiveRide({
+      id: rideId,
+      passengerId: session?.userId ?? "",
+      driverId: null,
+      status: "SEARCHING",
+      tariff,
+      fare,
+      promoCode: promo?.code ?? null,
+      discountApplied: promo?.discountAmount ?? null,
+      driver: null,
+    });
+    requestNotificationPermission();
+
     const sock = new RideSocket(rideId, {
       onLocation: (m) => setDriver({ label: "driver", lat: m.lat, lng: m.lng }),
+      onStatus: (m) => {
+        const status = m.status as RideStatus;
+        notify(t(`ride.status.${status}`) ?? status);
+        setActiveRide((prev) => (prev ? { ...prev, status, driverId: m.driverId } : prev));
+
+        if (status === "ACCEPTED" || status === "DRIVER_ARRIVED") {
+          getRide(rideId)
+            .then(setActiveRide)
+            .catch(() => {});
+        }
+        if (status === "COMPLETED") {
+          setRatingRideId(rideId);
+        }
+        if (ENDED_STATUSES.includes(status)) {
+          setActiveRide(null);
+          setDriver(null);
+          socketRef.current?.disconnect();
+        }
+      },
+      onMessage: (m) => {
+        setChatIncoming((list) => [...list, m]);
+        if (!chatOpenRef.current) {
+          setUnreadChat(true);
+          notify(m.body);
+        }
+      },
     });
     sock.connect();
     socketRef.current = sock;
@@ -145,19 +221,26 @@ export default function App() {
   }, [orderedPoints, from.point, to.point]);
 
   // ---- derived fare / labels ----
-  const price = route ? priceFor(route.km) : null;
+  const price = route ? priceFor(route.km, tariff) : null;
+  const finalPrice = promo ? promo.finalFare : price;
   const canOrder = Boolean(from.point && to.point && route);
-  const fareText = price != null ? `${price} TMT` : "— TMT";
+  const fareText = finalPrice != null ? `${finalPrice} TMT` : "— TMT";
   const distText = route ? `<b>${route.km.toFixed(1)}</b> ${t("sch.km")}` : "—";
   const timeText = route ? `≈ <b>${Math.round(route.min)}</b> ${t("sch.min")}` : "";
   const orderLabel =
-    price != null ? `${mode === "later" ? t("sch.book") : t("sch.order")} · ${price} TMT` : "";
+    finalPrice != null ? `${mode === "later" ? t("sch.book") : t("sch.order")} · ${finalPrice} TMT` : "";
+
+  // A previously applied promo was priced against the old fare — drop it once the fare changes.
+  useEffect(() => {
+    setPromo(null);
+  }, [price, tariff]);
 
   const buildRows = (): [string, string][] => {
     const rows: [string, string][] = [[t("m.route"), `${from.point!.label} → ${to.point!.label}`]];
     const stopLabels = stops.filter((s) => s.field.point).map((s) => s.field.point!.label);
     if (stopLabels.length) rows.push([t("m.stops"), stopLabels.join(", ")]);
-    rows.push([t("m.price"), `${price} TMT · ${t("m.cash")}`]);
+    rows.push([t("m.price"), `${finalPrice} TMT · ${t("m.cash")}`]);
+    if (promo) rows.push([t("promo.discount"), `−${promo.discountAmount} TMT (${promo.code})`]);
     if (options.comment.trim()) rows.push([t("m.comment"), options.comment.trim()]);
     if (options.otherOpen && options.otherName.trim()) {
       rows.push([t("m.passenger"), `${options.otherName.trim()} · +993 ${options.otherPhone.trim() || "—"}`]);
@@ -179,9 +262,9 @@ export default function App() {
     if (session?.online && apiToken.get()) {
       const scheduledAt = booking ? new Date(`${date}T${time}`).toISOString() : undefined;
       try {
-        const ride = await createRide(from.point, to.point, scheduledAt);
+        const ride = await createRide(from.point, to.point, scheduledAt, tariff, price, promo?.code);
         setSummary({ title: okTitle, subtitle: okSub, rows: [...rows, [t("m.rideNo"), ride.id.slice(0, 8)]] });
-        if (!booking) startTracking(ride.id); // live-track the driver once dispatched
+        if (!booking) startTracking(ride.id, finalPrice); // live-track the driver once dispatched
       } catch (e) {
         if (e instanceof ApiError) setSummary({ title: t("m.failTitle"), subtitle: e.message, rows });
         else if (e instanceof NetworkError) setSummary({ title: okTitle, subtitle: t("m.demo"), rows });
@@ -192,6 +275,18 @@ export default function App() {
 
     // Not signed in (or demo session): local confirmation.
     setSummary({ title: okTitle, subtitle: okSub, rows });
+  };
+
+  const cancelActiveRide = async () => {
+    if (!activeRide) return;
+    try {
+      await cancelRide(activeRide.id);
+    } catch {
+      /* best-effort — the status socket will reconcile if it actually stayed active */
+    }
+    setActiveRide(null);
+    setDriver(null);
+    socketRef.current?.disconnect();
   };
 
   return (
@@ -214,39 +309,55 @@ export default function App() {
       <PromoCards />
       <ZoomControls mapRef={mapRef} />
 
-      <div className="panel">
-        <AddressCard
-          from={from}
-          to={to}
-          stops={stops}
-          onText={setText}
-          onPick={pick}
-          onAddStop={addStop}
-          onRemoveStop={removeStop}
-          onGps={useMyLocation}
+      {activeRide ? (
+        <ActiveRideCard
+          ride={activeRide}
+          onChat={() => {
+            setChatOpen(true);
+            setUnreadChat(false);
+          }}
+          onSos={() => setSosOpen(true)}
+          onCancel={cancelActiveRide}
+          unreadChat={unreadChat}
         />
-        <SavedGrid onPick={pickSaved} />
-        <OptionsCard value={options} onChange={(patch) => setOptions((o) => ({ ...o, ...patch }))} />
-        <ScheduleCard
-          mode={mode}
-          onMode={setMode}
-          date={date}
-          time={time}
-          onDate={setDate}
-          onTime={setTime}
-          fareText={fareText}
-          distText={distText}
-          timeText={timeText}
-          canOrder={canOrder}
-          orderLabel={orderLabel}
-          hint={t(hintKey)}
-          onOrder={submit}
-        />
-      </div>
+      ) : (
+        <div className="panel">
+          <AddressCard
+            from={from}
+            to={to}
+            stops={stops}
+            onText={setText}
+            onPick={pick}
+            onAddStop={addStop}
+            onRemoveStop={removeStop}
+            onGps={useMyLocation}
+          />
+          <SavedGrid onPick={pickSaved} />
+          <OptionsCard value={options} onChange={(patch) => setOptions((o) => ({ ...o, ...patch }))} />
+          <TariffCard value={tariff} onChange={setTariff} km={route?.km ?? null} />
+          <PromoField fare={price} applied={promo} onApplied={setPromo} />
+          <ScheduleCard
+            mode={mode}
+            onMode={setMode}
+            date={date}
+            time={time}
+            onDate={setDate}
+            onTime={setTime}
+            fareText={fareText}
+            distText={distText}
+            timeText={timeText}
+            canOrder={canOrder}
+            orderLabel={orderLabel}
+            hint={t(hintKey)}
+            onOrder={submit}
+          />
+        </div>
+      )}
 
       <Footer />
       <OfflineDownload />
       <OfflineBadge />
+      <ToastStack toasts={toasts} />
 
       {summary && <OrderModal summary={summary} onClose={() => setSummary(null)} />}
       {authOpen && (
@@ -264,13 +375,34 @@ export default function App() {
           onClose={() => setProfileOpen(false)}
           onLogout={() => {
             apiToken.clear();
+            apiUserId.clear();
+            apiRole.clear();
             setSession(null);
             setProfileOpen(false);
             socketRef.current?.disconnect();
             setDriver(null);
+            setActiveRide(null);
           }}
         />
       )}
+      {chatOpen && activeRide && (
+        <ChatPanel
+          rideId={activeRide.id}
+          myUserId={session?.userId ?? null}
+          incoming={chatIncoming}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
+      {sosOpen && activeRide && (
+        <SosSheet
+          rideId={activeRide.id}
+          point={driver ?? from.point}
+          from={from.point}
+          to={to.point}
+          onClose={() => setSosOpen(false)}
+        />
+      )}
+      {ratingRideId && <RatingModal rideId={ratingRideId} onClose={() => setRatingRideId(null)} />}
     </>
   );
 }

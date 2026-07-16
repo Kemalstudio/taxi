@@ -33,3 +33,47 @@ export interface RouteResult {
   /** true when OSRM failed and we fell back to a straight line. */
   approximate: boolean;
 }
+
+export type RideTariff = "ECONOMY" | "COMFORT" | "BUSINESS" | "ELECTRO";
+
+export type RideStatus =
+  | "SCHEDULED"
+  | "REQUESTED"
+  | "SEARCHING"
+  | "ACCEPTED"
+  | "DRIVER_ARRIVED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "NO_DRIVERS_FOUND";
+
+export interface DriverInfo {
+  userId: string;
+  fullName: string;
+  phone: string | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
+  plateNumber: string | null;
+  rating: string;
+}
+
+export interface RideDetails {
+  id: string;
+  passengerId: string;
+  driverId: string | null;
+  status: RideStatus;
+  tariff: RideTariff;
+  fare: number | null;
+  promoCode: string | null;
+  discountApplied: number | null;
+  driver: DriverInfo | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  rideId: string;
+  senderId: string;
+  senderRole: string;
+  body: string;
+  createdAt: string;
+}

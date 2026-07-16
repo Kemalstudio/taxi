@@ -1,6 +1,8 @@
 package com.taxiplatform.application.ride
 
 import com.taxiplatform.application.dispatch.DispatchService
+import com.taxiplatform.application.ports.PromoCodeRepository
+import com.taxiplatform.application.ports.PromoRedemptionRepository
 import com.taxiplatform.application.ports.RideRepository
 import com.taxiplatform.domain.geo.GeoPoint
 import com.taxiplatform.domain.ride.RideStatus
@@ -18,7 +20,9 @@ class RequestRideUseCaseTest {
 
 	private val rideRepository = mockk<RideRepository>()
 	private val dispatchService = mockk<DispatchService>(relaxed = true)
-	private val useCase = RequestRideUseCase(rideRepository, dispatchService)
+	private val promoCodeRepository = mockk<PromoCodeRepository>()
+	private val promoRedemptionRepository = mockk<PromoRedemptionRepository>()
+	private val useCase = RequestRideUseCase(rideRepository, dispatchService, promoCodeRepository, promoRedemptionRepository)
 
 	private val command = RequestRideCommand(
 		passengerId = UUID.randomUUID(),

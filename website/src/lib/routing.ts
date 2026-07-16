@@ -1,8 +1,16 @@
-import type { GeoPoint, RouteResult } from "../types";
+import type { GeoPoint, RideTariff, RouteResult } from "../types";
 
-/** Cash fare in manat (TMT): base + per-km, floored at a minimum. */
-export function priceFor(km: number): number {
-  return Math.max(15, Math.round(10 + km * 3.2));
+export const TARIFF_MULTIPLIER: Record<RideTariff, number> = {
+  ECONOMY: 1,
+  COMFORT: 1.3,
+  BUSINESS: 1.8,
+  ELECTRO: 1.15,
+};
+
+/** Cash fare in manat (TMT): base + per-km, floored at a minimum, scaled by tariff. */
+export function priceFor(km: number, tariff: RideTariff = "ECONOMY"): number {
+  const base = Math.max(15, Math.round(10 + km * 3.2));
+  return Math.round(base * TARIFF_MULTIPLIER[tariff]);
 }
 
 function haversine(a: GeoPoint, b: GeoPoint): number {
