@@ -10,10 +10,11 @@ slice rather than a mockup:
   Jetpack Compose) for the driver side of that lifecycle — register/login,
   go online with live location, receive ride offers in real time, and drive
   a ride through arrived → started → completed.
-- **Phase 3 — Admin dashboard** (`admin-dashboard/`): React + Vite +
-  TypeScript + Tailwind operations console — live driver map (OpenStreetMap),
-  real-time KPIs, rides-by-status analytics, and rides/drivers tables, wired
-  to admin-only backend endpoints.
+- **Phase 3 — Admin dashboard** (`website/src/admin/`, served at `/admin` on
+  the website): React + TypeScript + Tailwind operations console — live
+  driver map (OpenStreetMap), real-time KPIs, rides-by-status analytics,
+  rides/drivers/users tables, and driver earnings, wired to admin-only
+  backend endpoints.
 
 Not yet built: passenger app, payments, AI services, or social/biometric
 login — see each phase's "Roadmap" section below.
@@ -74,8 +75,8 @@ or candidates are exhausted (`NO_DRIVERS_FOUND`).
 
 ### Roadmap (explicitly out of scope for this phase)
 
-OTP/SMS, social/biometric login, GraphQL/gRPC, payments/wallet, promo codes,
-admin dashboards, AI services (matching/fraud/surge), Kubernetes, CI/CD.
+Social/biometric login, GraphQL/gRPC, a real payment gateway/wallet,
+AI services (matching/fraud), Kubernetes, CI/CD.
 
 ## Driver App (Phase 2)
 
@@ -139,21 +140,26 @@ layouts, passenger app.
 
 ## Admin Dashboard (Phase 3)
 
-Operations console in `admin-dashboard/` — React 18 + Vite + TypeScript +
-Tailwind, TanStack Query for polling, Recharts for analytics, and Leaflet +
-OpenStreetMap for the live driver map (no API key required). Premium dark
-"glass" UI.
+Operations console at `/admin` on the website (`website/src/admin/`) — same
+Vite app as the rest of `website/`, code-split so its React Query/Recharts/
+react-router bundle only ships to visitors of `/admin` (see the `isAdmin`
+branch in `website/src/main.tsx`). TanStack Query for polling (plus a
+WebSocket feed for the live driver map), Recharts for analytics, and Leaflet
++ OpenStreetMap for the map (no API key required). Premium dark "glass" UI.
 
 ### Backend additions for this phase
 
-- New `ADMIN` role; an admin user is **seeded on startup** if none exists
-  (`admin@taxi.local` by default — override with `ADMIN_EMAIL` /
-  `ADMIN_PASSWORD`; disable with `ADMIN_SEED_ENABLED=false`).
-- Admin-only endpoints (require an ADMIN JWT):
-  `GET /admin/stats`, `GET /admin/rides?status=&limit=`,
-  `GET /admin/drivers`, `GET /admin/drivers/online` (live map feed).
-- CORS is enabled for the dashboard origin
-  (`CORS_ALLOWED_ORIGINS`, default `http://localhost:5173`).
+- `ADMIN`, `OPERATOR`, `DISPATCHER`, `SUPER_ADMIN` roles; an admin user is
+  **seeded on startup** if none exists (`admin@taxi.local` by default —
+  override with `ADMIN_EMAIL` / `ADMIN_PASSWORD`; disable with
+  `ADMIN_SEED_ENABLED=false`).
+- Admin-only endpoints under `/admin/**` (require an ADMIN or OPERATOR JWT;
+  a few sensitive ones — user/role management, payment confirmation, promo
+  codes, driver verification/ban — are ADMIN-only): stats, rides, drivers
+  (incl. verification/ban), users, promo codes, pricing settings, revenue,
+  system status. See `AdminController.kt` for the full list.
+- CORS is enabled for the website origin
+  (`CORS_ALLOWED_ORIGINS`, default `http://localhost:5174`).
 
 ### Prerequisites
 
@@ -163,26 +169,26 @@ OpenStreetMap for the live driver map (no API key required). Premium dark
 ### Running it
 
 ```bash
-cd admin-dashboard
+cd website
 npm install
-npm run dev          # http://localhost:5173
+npm run dev          # http://localhost:5174/admin
 ```
 
 The API base URL is read from `.env` (`VITE_API_BASE_URL`, default
 `http://localhost:8080`). Log in with the seeded admin credentials. A
-non-admin account is rejected at login.
+non-admin/operator account is rejected at login.
 
 ### Build / verify
 
 ```bash
-cd admin-dashboard
+cd website
 npm run build        # tsc typecheck + vite production build
 ```
 
 ### End-to-end check
 
 1. Start the backend (`docker compose up --build`).
-2. `npm run dev` in `admin-dashboard/`, log in as the admin.
+2. `npm run dev` in `website/`, open `/admin`, log in as the admin.
 3. Register a driver (via the driver app or `curl`), have them go online and
    post a location; a marker appears on the live map and the "Drivers online"
    KPI ticks up. Request a ride as a passenger and watch the KPIs, the
@@ -190,9 +196,7 @@ npm run build        # tsc typecheck + vite production build
 
 ### Roadmap (explicitly out of scope for this phase)
 
-KYC/verification workflows, payments/refunds admin, CMS, role-permission
-editor, audit-log viewer, promotions/coupons, real analytics warehouse,
-separate operator/super-admin dashboards, SSO.
+CMS, real analytics warehouse, SSO.
 
 ## Taksi Go Website (Phase 4)
 
@@ -264,9 +268,9 @@ rides list.
 1. `docker compose up --build` (backend + Postgres + Redis).
 2. `cd website && npm run dev`, open it, **Sign in** (registers a passenger),
    pick A→B, **Заказать**.
-3. `cd admin-dashboard && npm run dev`, log in as the seeded admin — the new
-   ride appears in **Rides** and the KPIs update. The driver app (once built)
-   talks to the same API, so drivers can accept these rides.
+3. Open `/admin` in the same dev server, log in as the seeded admin — the
+   new ride appears in **Rides** and the KPIs update. The driver app (once
+   built) talks to the same API, so drivers can accept these rides.
 
 ### Roadmap (explicitly out of scope for this phase)
 
