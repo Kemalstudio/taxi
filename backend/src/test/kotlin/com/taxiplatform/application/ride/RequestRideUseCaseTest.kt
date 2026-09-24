@@ -1,6 +1,8 @@
 package com.taxiplatform.application.ride
 
 import com.taxiplatform.application.dispatch.DispatchService
+import com.taxiplatform.application.payment.PaymentPort
+import com.taxiplatform.application.pricing.PricingService
 import com.taxiplatform.application.ports.PromoCodeRepository
 import com.taxiplatform.application.ports.PromoRedemptionRepository
 import com.taxiplatform.application.ports.RideRepository
@@ -22,7 +24,17 @@ class RequestRideUseCaseTest {
 	private val dispatchService = mockk<DispatchService>(relaxed = true)
 	private val promoCodeRepository = mockk<PromoCodeRepository>()
 	private val promoRedemptionRepository = mockk<PromoRedemptionRepository>()
-	private val useCase = RequestRideUseCase(rideRepository, dispatchService, promoCodeRepository, promoRedemptionRepository)
+	// Unused by these tests: `command` never sets `km`, and payment stays CASH — the use case never calls either.
+	private val pricingService = mockk<PricingService>()
+	private val paymentPort = mockk<PaymentPort>()
+	private val useCase = RequestRideUseCase(
+		rideRepository,
+		dispatchService,
+		promoCodeRepository,
+		promoRedemptionRepository,
+		pricingService,
+		paymentPort,
+	)
 
 	private val command = RequestRideCommand(
 		passengerId = UUID.randomUUID(),
