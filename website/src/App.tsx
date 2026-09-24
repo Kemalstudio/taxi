@@ -7,6 +7,7 @@ import { ZoomControls } from "./components/ZoomControls";
 import { AddressCard, type FieldTarget } from "./components/AddressCard";
 import { SavedGrid } from "./components/SavedGrid";
 import { OptionsCard, type OptionsState } from "./components/OptionsCard";
+import { PaymentMethodToggle } from "./components/PaymentMethodToggle";
 import { TariffCard } from "./components/TariffCard";
 import { PromoField } from "./components/PromoField";
 import { ScheduleCard } from "./components/ScheduleCard";
@@ -18,24 +19,38 @@ import { ActiveRideCard } from "./components/ActiveRideCard";
 import { ChatPanel } from "./components/ChatPanel";
 import { RatingModal } from "./components/RatingModal";
 import { SosSheet } from "./components/SosSheet";
+import { CancelConfirmModal } from "./components/CancelConfirmModal";
 import { ToastStack, useToasts, requestNotificationPermission } from "./components/Toast";
+import { subscribeToPush } from "./lib/push";
 import { DEFAULT_FROM } from "./data/places";
 import { priceFor, routeThrough } from "./lib/routing";
 import {
   createRide,
   getRide,
   cancelRide,
+  getPriceQuote,
   token as apiToken,
   userId as apiUserId,
   role as apiRole,
   ApiError,
   NetworkError,
   type PromoPreview,
+  type PriceQuote,
 } from "./lib/api";
 import { RideSocket, type RideChatMsg } from "./lib/rideSocket";
 import { ProfileModal } from "./components/ProfileModal";
 import { useI18n } from "./i18n";
-import type { AddressField, GeoPoint, RideDetails, RideMode, RideStatus, RideTariff, RouteResult, StopRow } from "./types";
+import type {
+  AddressField,
+  GeoPoint,
+  PaymentMethod,
+  RideDetails,
+  RideMode,
+  RideStatus,
+  RideTariff,
+  RouteResult,
+  StopRow,
+} from "./types";
 
 const emptyField = (): AddressField => ({ text: "", point: null });
 const ENDED_STATUSES: RideStatus[] = ["COMPLETED", "CANCELLED", "NO_DRIVERS_FOUND"];
@@ -66,9 +81,13 @@ export default function App() {
     otherPhone: "",
     textOnly: false,
     wheelchair: false,
+    withPet: false,
+    childSeat: false,
+    extraLuggage: false,
   });
 
   const [tariff, setTariff] = useState<RideTariff>("ECONOMY");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [promo, setPromo] = useState<PromoPreview | null>(null);
 
   const [route, setRoute] = useState<RouteResult | null>(null);
@@ -85,7 +104,9 @@ export default function App() {
   const [chatIncoming, setChatIncoming] = useState<RideChatMsg[]>([]);
   const [unreadChat, setUnreadChat] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [ratingRideId, setRatingRideId] = useState<string | null>(null);
+  const [quote, setQuote] = useState<PriceQuote | null>(null);
   const { toasts, notify } = useToasts();
 
   useEffect(() => {
@@ -107,9 +128,15 @@ export default function App() {
       fare,
       promoCode: promo?.code ?? null,
       discountApplied: promo?.discountAmount ?? null,
+      surgeMultiplier: quote?.surgeMultiplier ?? 1,
+      cancellationFee: null,
+      estimatedCancellationFee: null,
+      paymentMethod,
+      paymentStatus: paymentMethod === "CARD" ? "PENDING" : "NOT_APPLICABLE",
       driver: null,
     });
     requestNotificationPermission();
+    subscribeToPush(); // best-effort — lets status updates arrive even if the tab gets closed
 
     const sock = new RideSocket(rideId, {
       onLocation: (m) => setDriver({ label: "driver", lat: m.lat, lng: m.lng }),
@@ -220,8 +247,27 @@ export default function App() {
     };
   }, [orderedPoints, from.point, to.point]);
 
+  // ---- pricing: ask the backend for the authoritative (surge-aware) fare, falling back
+  // to the same offline formula the backend uses when it can't be reached. ----
+  useEffect(() => {
+    if (!route) {
+      setQuote(null);
+      return;
+    }
+    let cancelled = false;
+    getPriceQuote(route.km, tariff)
+      .then((q) => !cancelled && setQuote(q))
+      .catch(() => {
+        if (cancelled) return;
+        setQuote({ baseFare: priceFor(route.km, tariff), surgeMultiplier: 1, finalFare: priceFor(route.km, tariff) });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [route, tariff]);
+
   // ---- derived fare / labels ----
-  const price = route ? priceFor(route.km, tariff) : null;
+  const price = quote?.finalFare ?? null;
   const finalPrice = promo ? promo.finalFare : price;
   const canOrder = Boolean(from.point && to.point && route);
   const fareText = finalPrice != null ? `${finalPrice} TMT` : "— TMT";
@@ -229,6 +275,7 @@ export default function App() {
   const timeText = route ? `≈ <b>${Math.round(route.min)}</b> ${t("sch.min")}` : "";
   const orderLabel =
     finalPrice != null ? `${mode === "later" ? t("sch.book") : t("sch.order")} · ${finalPrice} TMT` : "";
+  const surgeMultiplier = quote?.surgeMultiplier ?? 1;
 
   // A previously applied promo was priced against the old fare — drop it once the fare changes.
   useEffect(() => {
@@ -245,6 +292,14 @@ export default function App() {
     if (options.otherOpen && options.otherName.trim()) {
       rows.push([t("m.passenger"), `${options.otherName.trim()} · +993 ${options.otherPhone.trim() || "—"}`]);
     }
+    const flags = [
+      options.textOnly && t("opt.textOnly"),
+      options.wheelchair && t("opt.wheelchair"),
+      options.withPet && t("opt.pet"),
+      options.childSeat && t("opt.childSeat"),
+      options.extraLuggage && t("opt.extraLuggage"),
+    ].filter(Boolean) as string[];
+    if (flags.length) rows.push([t("m.notes"), flags.join(", ")]);
     return rows;
   };
 
@@ -262,7 +317,16 @@ export default function App() {
     if (session?.online && apiToken.get()) {
       const scheduledAt = booking ? new Date(`${date}T${time}`).toISOString() : undefined;
       try {
-        const ride = await createRide(from.point, to.point, scheduledAt, tariff, price, promo?.code);
+        const ride = await createRide(
+          from.point,
+          to.point,
+          route!.km,
+          scheduledAt,
+          tariff,
+          price,
+          promo?.code,
+          paymentMethod,
+        );
         setSummary({ title: okTitle, subtitle: okSub, rows: [...rows, [t("m.rideNo"), ride.id.slice(0, 8)]] });
         if (!booking) startTracking(ride.id, finalPrice); // live-track the driver once dispatched
       } catch (e) {
@@ -287,6 +351,16 @@ export default function App() {
     setActiveRide(null);
     setDriver(null);
     socketRef.current?.disconnect();
+  };
+
+  // Refresh the cancellation-fee estimate right before showing the confirm sheet — it's
+  // time-based (grace period since driver acceptance), so a stale value could under-warn.
+  const requestCancel = () => {
+    if (!activeRide) return;
+    setCancelConfirmOpen(true);
+    getRide(activeRide.id)
+      .then((fresh) => setActiveRide((prev) => (prev ? { ...prev, estimatedCancellationFee: fresh.estimatedCancellationFee } : prev)))
+      .catch(() => {});
   };
 
   return (
@@ -317,7 +391,7 @@ export default function App() {
             setUnreadChat(false);
           }}
           onSos={() => setSosOpen(true)}
-          onCancel={cancelActiveRide}
+          onCancel={requestCancel}
           unreadChat={unreadChat}
         />
       ) : (
@@ -334,6 +408,7 @@ export default function App() {
           />
           <SavedGrid onPick={pickSaved} />
           <OptionsCard value={options} onChange={(patch) => setOptions((o) => ({ ...o, ...patch }))} />
+          <PaymentMethodToggle value={paymentMethod} onChange={setPaymentMethod} />
           <TariffCard value={tariff} onChange={setTariff} km={route?.km ?? null} />
           <PromoField fare={price} applied={promo} onApplied={setPromo} />
           <ScheduleCard
@@ -346,6 +421,7 @@ export default function App() {
             fareText={fareText}
             distText={distText}
             timeText={timeText}
+            surgeMultiplier={surgeMultiplier}
             canOrder={canOrder}
             orderLabel={orderLabel}
             hint={t(hintKey)}
@@ -403,6 +479,16 @@ export default function App() {
         />
       )}
       {ratingRideId && <RatingModal rideId={ratingRideId} onClose={() => setRatingRideId(null)} />}
+      {cancelConfirmOpen && activeRide && (
+        <CancelConfirmModal
+          fee={activeRide.estimatedCancellationFee}
+          onConfirm={() => {
+            setCancelConfirmOpen(false);
+            cancelActiveRide();
+          }}
+          onClose={() => setCancelConfirmOpen(false)}
+        />
+      )}
     </>
   );
 }
