@@ -3,6 +3,7 @@ import { Banknote, Clock, MapPin, Settings, LifeBuoy, LogOut, Star, Gift } from 
 import { useI18n } from "../i18n";
 import { getMe } from "../lib/api";
 import type { Session } from "./LoginModal";
+import { RideHistoryModal } from "./RideHistoryModal";
 
 interface Props {
   session: Session;
@@ -15,6 +16,7 @@ export function ProfileModal({ session, onClose, onLogout }: Props) {
   const initial = session.name.charAt(0).toUpperCase();
   const [points, setPoints] = useState<number | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     if (!session.online) return;
@@ -27,11 +29,11 @@ export function ProfileModal({ session, onClose, onLogout }: Props) {
   }, [session.online]);
 
   const rows = [
-    { icon: Banknote, title: t("prof.payment"), sub: t("prof.cash") },
-    { icon: Clock, title: t("prof.history"), sub: t("prof.trips") },
-    { icon: MapPin, title: t("prof.saved"), sub: `${t("saved.home")} · ${t("saved.work")}` },
-    { icon: Settings, title: t("prof.settings"), sub: "" },
-    { icon: LifeBuoy, title: t("prof.support"), sub: "" },
+    { icon: Banknote, title: t("prof.payment"), sub: t("prof.cash"), onClick: undefined },
+    { icon: Clock, title: t("prof.history"), sub: t("prof.trips"), onClick: () => setHistoryOpen(true) },
+    { icon: MapPin, title: t("prof.saved"), sub: `${t("saved.home")} · ${t("saved.work")}`, onClick: undefined },
+    { icon: Settings, title: t("prof.settings"), sub: "", onClick: undefined },
+    { icon: LifeBuoy, title: t("prof.support"), sub: "", onClick: undefined },
   ];
 
   return (
@@ -69,7 +71,7 @@ export function ProfileModal({ session, onClose, onLogout }: Props) {
 
         <div className="prof-list">
           {rows.map((r) => (
-            <button className="prof-row" key={r.title}>
+            <button className="prof-row" key={r.title} onClick={r.onClick}>
               <span className="prof-ic">
                 <r.icon size={19} />
               </span>
@@ -88,6 +90,7 @@ export function ProfileModal({ session, onClose, onLogout }: Props) {
           </button>
         </div>
       </div>
+      {historyOpen && <RideHistoryModal onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 }
