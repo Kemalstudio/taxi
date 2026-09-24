@@ -1,76 +1,107 @@
 import type { ReactNode } from "react";
+import { TrendingDown, TrendingUp } from "lucide-react";
 import type { RideStatus, DriverStatus } from "../../types";
+import { Card as CardBase } from "./card";
+import { Badge } from "./badge";
+import { cn } from "@/lib/cn";
 
-export function Card({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <div className={`glass p-5 ${className}`}>{children}</div>;
-}
+export { Card } from "./card";
+export { CardHeader, CardTitle, CardDescription } from "./card";
+export { Badge } from "./badge";
 
 export function Spinner({ label }: { label?: string }) {
   return (
     <div className="flex items-center gap-3 text-mist-500">
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-mist-600 border-t-amber" />
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-mist-600 border-t-accent" />
       {label && <span className="text-sm">{label}</span>}
     </div>
   );
 }
 
-const STATUS_STYLES: Record<string, string> = {
+const STATUS_TONE: Record<string, "neutral" | "success" | "danger" | "info" | "amber"> = {
   // Ride statuses
-  REQUESTED: "bg-white/5 text-mist-300",
-  SEARCHING: "bg-info/15 text-info animate-pulse-soft",
-  ACCEPTED: "bg-amber-muted text-amber",
-  DRIVER_ARRIVED: "bg-amber-muted text-amber",
-  IN_PROGRESS: "bg-info/15 text-info",
-  COMPLETED: "bg-success/15 text-success",
-  CANCELLED: "bg-danger/15 text-danger",
-  NO_DRIVERS_FOUND: "bg-danger/15 text-danger",
+  REQUESTED: "neutral",
+  SEARCHING: "info",
+  ACCEPTED: "amber",
+  DRIVER_ARRIVED: "amber",
+  IN_PROGRESS: "info",
+  COMPLETED: "success",
+  CANCELLED: "danger",
+  NO_DRIVERS_FOUND: "danger",
   // Driver statuses
-  ONLINE: "bg-success/15 text-success",
-  BUSY: "bg-amber-muted text-amber",
-  OFFLINE: "bg-white/5 text-mist-500",
+  ONLINE: "success",
+  BUSY: "amber",
+  OFFLINE: "neutral",
 };
 
 export function StatusBadge({ status }: { status: RideStatus | DriverStatus | string }) {
-  const style = STATUS_STYLES[status] ?? "bg-white/5 text-mist-300";
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${style}`}>
+    <Badge tone={STATUS_TONE[status] ?? "neutral"} className={status === "SEARCHING" ? "animate-pulse-soft" : ""}>
       {status.replaceAll("_", " ").toLowerCase()}
-    </span>
+    </Badge>
   );
 }
 
-export function StatTile({
-  label,
-  value,
-  hint,
-  accent = false,
-}: {
+interface StatTileProps {
   label: string;
   value: string | number;
   hint?: string;
   accent?: boolean;
-}) {
+  trend?: { direction: "up" | "down"; label: string };
+}
+
+export function StatTile({ label, value, hint, accent = false, trend }: StatTileProps) {
   return (
-    <div className={`glass glass-hover animate-fade-up p-5 ${accent ? "ring-1 ring-amber/20" : ""}`}>
+    <CardBase className={cn("animate-fade-up p-5 transition hover:border-white/[0.14]", accent && "ring-1 ring-accent/20")}>
       <p className="text-sm text-mist-500">{label}</p>
-      <p className={`mt-2 text-3xl font-semibold tnum ${accent ? "text-amber" : "text-mist-100"}`}>
+      <p className={cn("mt-2 text-[30px] font-semibold leading-none tnum", accent ? "text-accent" : "text-mist-100")}>
         {value}
       </p>
-      {hint && <p className="mt-1 text-xs text-mist-600">{hint}</p>}
-    </div>
+      {trend && (
+        <p className={cn("mt-2 flex items-center gap-1 text-[13px]", trend.direction === "up" ? "text-success" : "text-danger")}>
+          {trend.direction === "up" ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+          {trend.label}
+        </p>
+      )}
+      {hint && !trend && <p className="mt-1 text-xs text-mist-600">{hint}</p>}
+    </CardBase>
   );
 }
 
-export function EmptyState({ message }: { message: string }) {
+interface KpiCardProps {
+  label: string;
+  value: string | number;
+  hint?: string;
+  icon: ReactNode;
+  tone?: "accent" | "amber" | "success" | "info" | "violet";
+}
+
+const KPI_TONE_CLASSES: Record<NonNullable<KpiCardProps["tone"]>, string> = {
+  accent: "bg-accent-muted text-accent",
+  amber: "bg-amber-muted text-amber",
+  success: "bg-success/15 text-success",
+  info: "bg-info/15 text-info",
+  violet: "bg-violet/15 text-violet",
+};
+
+/** Icon-circle stat card, styled after the reference dashboard mockup. */
+export function KpiCard({ label, value, hint, icon, tone = "accent" }: KpiCardProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <div className="grid h-12 w-12 place-items-center rounded-full bg-white/5 text-mist-500">◎</div>
+    <CardBase className="animate-fade-up p-5 transition hover:border-white/[0.14]">
+      <div className={cn("grid h-10 w-10 place-items-center rounded-xl2", KPI_TONE_CLASSES[tone])}>{icon}</div>
+      <p className="mt-4 text-sm text-mist-500">{label}</p>
+      <p className="mt-1 text-[28px] font-semibold leading-none tnum text-mist-100">{value}</p>
+      {hint && <p className="mt-2 text-xs text-mist-600">{hint}</p>}
+    </CardBase>
+  );
+}
+
+export function EmptyState({ message, icon }: { message: string; icon?: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-white/5 text-mist-500">
+        {icon ?? "◎"}
+      </div>
       <p className="text-sm text-mist-500">{message}</p>
     </div>
   );
