@@ -4,6 +4,33 @@ import { useTheme } from "../theme";
 import { useI18n, LANGS } from "../i18n";
 import type { Session } from "./LoginModal";
 
+const PHONE = "+993 (64) 00-53-74";
+const TEL = `tel:${PHONE.replace(/[^\d+]/g, "")}`;
+
+interface NavItem {
+  labelKey: string;
+  items: { label: string; href: string }[];
+}
+
+function NavDropdown({ item, t }: { item: NavItem; t: (key: string) => string }) {
+  return (
+    <div className="nav-drop">
+      <a tabIndex={0} role="button">
+        {t(item.labelKey)} <ChevronDown size={15} />
+      </a>
+      <div className="nav-drop-menu">
+        <div className="nav-drop-menu-inner">
+          {item.items.map((it) => (
+            <a key={it.label} href={it.href}>
+              {it.label}
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   session: Session | null;
   onSignIn: () => void;
@@ -16,25 +43,46 @@ export function TopNav({ session, onSignIn, onProfile }: Props) {
   const [langOpen, setLangOpen] = useState(false);
   const current = LANGS.find((l) => l.code === lang)!;
 
+  const NAV_ITEMS: NavItem[] = [
+    {
+      labelKey: "nav.users",
+      items: [
+        { label: t("footer.tariffs"), href: "/" },
+        { label: t("nav.download"), href: "/" },
+      ],
+    },
+    {
+      labelKey: "nav.drivers",
+      items: [
+        { label: t("mkt.drivers.title"), href: "/drivers" },
+        { label: t("mkt.drivers.cta"), href: TEL },
+      ],
+    },
+    {
+      labelKey: "nav.business",
+      items: [
+        { label: t("mkt.business.title"), href: "/business" },
+        { label: t("mkt.business.cta"), href: TEL },
+      ],
+    },
+    {
+      labelKey: "nav.partners",
+      items: [
+        { label: t("mkt.partners.title"), href: "/partners" },
+        { label: t("mkt.partners.cta"), href: TEL },
+      ],
+    },
+  ];
+
   return (
     <nav className="topnav">
       <div className="logo">
         <span className="badge">Go</span> Taksi
       </div>
       <div className="navmenu">
-        <a>
-          {t("nav.users")} <ChevronDown size={15} />
-        </a>
-        <a>
-          {t("nav.drivers")} <ChevronDown size={15} />
-        </a>
-        <a>
-          {t("nav.business")} <ChevronDown size={15} />
-        </a>
-        <a>
-          {t("nav.partners")} <ChevronDown size={15} />
-        </a>
-        <a>{t("nav.download")}</a>
+        {NAV_ITEMS.map((item) => (
+          <NavDropdown key={item.labelKey} item={item} t={t} />
+        ))}
       </div>
 
       <div className="nav-right">
