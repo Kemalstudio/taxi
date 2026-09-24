@@ -35,6 +35,36 @@ function cacheKey(request) {
   return request;
 }
 
+// ---- Web Push: real OS-level notifications, delivered even when the tab/PWA is closed ----
+// The backend currently sends an empty push body (see WebPushSender.kt) — this default text
+// covers that case; a payload (if one's ever added) still overrides it below.
+self.addEventListener("push", (event) => {
+  let data = { title: "Taksi Go", body: "Обновление по вашей поездке — откройте приложение" };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    if (event.data) data.body = event.data.text();
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Taksi Go", {
+      body: data.body || "",
+      icon: "/icon.svg",
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const existing = clients.find((c) => "focus" in c);
+      if (existing) return existing.focus();
+      return self.clients.openWindow("/");
+    })(),
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   if (!shouldCache(event.request)) return;
   const req = event.request;
