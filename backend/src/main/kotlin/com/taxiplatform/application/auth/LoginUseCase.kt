@@ -3,6 +3,7 @@ package com.taxiplatform.application.auth
 import com.taxiplatform.application.ports.JwtService
 import com.taxiplatform.application.ports.PasswordHasher
 import com.taxiplatform.application.ports.UserRepository
+import com.taxiplatform.domain.user.isBackOffice
 import org.springframework.stereotype.Service
 
 data class LoginCommand(
@@ -21,6 +22,8 @@ class LoginUseCase(
 		if (!passwordHasher.matches(command.rawPassword, user.passwordHash)) {
 			throw InvalidCredentialsException()
 		}
+		if (user.banned) throw AccountBannedException(user.bannedReason)
+		if (user.role.isBackOffice()) throw AdminTwoFactorRequiredException()
 		val token = jwtService.generateToken(user.id, user.role)
 		return AuthResult(userId = user.id, role = user.role, token = token)
 	}
