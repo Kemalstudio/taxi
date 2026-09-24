@@ -37,6 +37,9 @@ class RegisterUseCase(
 ) {
 	@Transactional
 	fun execute(command: RegisterCommand): AuthResult {
+		require(command.role == Role.PASSENGER || command.role == Role.DRIVER) {
+			"Public registration only supports PASSENGER or DRIVER accounts"
+		}
 		if (userRepository.findByEmail(command.email) != null) {
 			throw EmailAlreadyRegisteredException(command.email)
 		}
