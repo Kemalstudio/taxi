@@ -32,8 +32,16 @@ class AdminSeeder {
 		@Value("\${taxi.admin.full-name}") fullName: String,
 	): ApplicationRunner = ApplicationRunner {
 		if (!seedEnabled) return@ApplicationRunner
-		if (userRepository.findByEmail(email) != null) {
-			log.info("Admin user {} already exists, skipping seed", email)
+		val existing = userRepository.findByEmail(email)
+		if (existing != null) {
+			// V15 introduced the distinct SUPER_ADMIN bootstrap role. Upgrade only the
+			// explicitly configured seed account, never arbitrary administrator accounts.
+			if (existing.role == Role.ADMIN) {
+				userRepository.save(existing.copy(role = Role.SUPER_ADMIN))
+				log.info("Upgraded configured seed account {} to SUPER_ADMIN", email)
+			} else {
+				log.info("Admin user {} already exists, skipping seed", email)
+			}
 			return@ApplicationRunner
 		}
 		userRepository.save(
@@ -41,7 +49,7 @@ class AdminSeeder {
 				id = UUID.randomUUID(),
 				email = email,
 				passwordHash = passwordHasher.hash(password),
-				role = Role.ADMIN,
+				role = Role.SUPER_ADMIN,
 				fullName = fullName,
 				phone = null,
 				createdAt = Instant.now(),
