@@ -42,3 +42,18 @@ data class SosAlertMessage(
 	val lng: Double,
 	val createdAt: Instant,
 )
+
+/** Sent to the admin-only drivers topic on every GPS ping, regardless of whether the driver
+ * has an active ride — lets the live map update without waiting for the next poll. */
+data class AdminDriverLocationMessage(
+	val driverId: UUID,
+	val lat: Double,
+	val lng: Double,
+)
+
+/** Sent to the admin-only drivers topic whenever a driver goes online/offline/busy, so the
+ * live map can add/remove their marker immediately instead of waiting for the next poll. */
+data class AdminDriverStatusMessage(
+	val driverId: UUID,
+	val status: String,
+)
