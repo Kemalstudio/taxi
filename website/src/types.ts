@@ -36,6 +36,9 @@ export interface RouteResult {
 
 export type RideTariff = "ECONOMY" | "COMFORT" | "BUSINESS" | "ELECTRO";
 
+export type PaymentMethod = "CASH" | "CARD";
+export type PaymentStatus = "NOT_APPLICABLE" | "PENDING" | "CONFIRMED" | "FAILED";
+
 export type RideStatus =
   | "SCHEDULED"
   | "REQUESTED"
@@ -66,7 +69,65 @@ export interface RideDetails {
   fare: number | null;
   promoCode: string | null;
   discountApplied: number | null;
+  surgeMultiplier: number;
+  cancellationFee: number | null;
+  /** What cancelling right now would cost — only present on a fresh GET /rides/{id}. */
+  estimatedCancellationFee: number | null;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
   driver: DriverInfo | null;
+}
+
+export interface RideSummary {
+  id: string;
+  requestedAt: string;
+  pickupLabel: string | null;
+  dropoffLabel: string | null;
+  status: RideStatus;
+  tariff: RideTariff;
+  fare: number | null;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+}
+
+export type DriverStatus = "OFFLINE" | "ONLINE" | "BUSY";
+
+export type VerificationStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+/** The signed-in driver's own account + vehicle profile. */
+export interface DriverMe {
+  userId: string;
+  fullName: string;
+  phone: string | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
+  plateNumber: string | null;
+  rating: string;
+  status: DriverStatus;
+  verificationStatus: VerificationStatus;
+  rejectionReason: string | null;
+  hasLicenseDoc: boolean;
+  hasVehicleDoc: boolean;
+}
+
+export interface DriverEarningsPoint {
+  date: string;
+  totalFare: number;
+  rideCount: number;
+}
+
+export interface DriverEarnings {
+  driverId: string;
+  totalFare: number;
+  rideCount: number;
+  points: DriverEarningsPoint[];
+}
+
+export interface DriverActivityStats {
+  driverId: string;
+  completedRides: number;
+  cancelledRides: number;
+  averageRating: string | null;
 }
 
 export interface ChatMessage {
