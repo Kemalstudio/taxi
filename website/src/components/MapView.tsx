@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import maplibregl, { type StyleSpecification, type GeoJSONSource } from "maplibre-gl";
 import type { GeoPoint, RouteResult } from "../types";
+import { bearing, distanceMeters, unwrapBearing } from "../lib/geo";
+
+/** Below this, a "moved" reading is just GPS jitter — don't spin the car icon in place. */
+const MIN_HEADING_DISTANCE_M = 3;
 
 const ASHGABAT: [number, number] = [58.38, 37.95]; // [lng, lat]
 
@@ -38,11 +42,12 @@ function pinEl(): HTMLDivElement {
   return d;
 }
 
+/** Nose points up (bearing 0 / north) — MapLibre's Marker rotation handles turning it to heading. */
 function driverEl(): HTMLDivElement {
   const d = document.createElement("div");
   d.className = "mk-driver";
   d.innerHTML =
-    '<svg width="18" height="18" viewBox="0 0 24 24" fill="#16181C"><path d="M8.2 3h7.6a2 2 0 0 1 1.9 1.4l.85 2.9c.95.28 1.55 1.1 1.55 2.05v8.35c0 .77-.58 1.3-1.3 1.3h-1.4v1.35c0 .58-.5 1.05-1.1 1.05h-.9c-.6 0-1.1-.47-1.1-1.05V19H9.7v1.35c0 .58-.5 1.05-1.1 1.05h-.9c-.6 0-1.1-.47-1.1-1.05V19H5.2c-.72 0-1.3-.53-1.3-1.3V9.35c0-.95.6-1.77 1.55-2.05l.85-2.9A2 2 0 0 1 8.2 3Zm-.15 3.1L7.3 8.7h9.4l-.75-2.6a.7.7 0 0 0-.67-.5H8.72a.7.7 0 0 0-.67.5Z"/></svg>';
+    '<svg width="16" height="16" viewBox="0 0 24 24"><rect x="7" y="9" width="10" height="13" rx="3" fill="#16181C"/><path d="M12 2 L17 10 H7 Z" fill="#16181C"/></svg>';
   return d;
 }
 
@@ -54,13 +59,21 @@ interface Props {
   route: RouteResult | null;
   me: GeoPoint | null;
   driver: GeoPoint | null;
+  /** Fit the viewport to the route every time it changes (default true — booking flow, where a
+   * new route means the user picked new points). Pass false for a live-updating route (e.g. the
+   * driver's position feeding a recalculated ETA) so it redraws without yanking the map around
+   * every refresh — it's still fit once, the first time a route appears. */
+  autoFit?: boolean;
 }
 
-export function MapView({ mapRef, from, to, stops, route, me, driver }: Props) {
+export function MapView({ mapRef, from, to, stops, route, me, driver, autoFit = true }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
   const meMarker = useRef<maplibregl.Marker | null>(null);
   const driverMarker = useRef<maplibregl.Marker | null>(null);
+  const driverPrevPoint = useRef<GeoPoint | null>(null);
+  const driverHeading = useRef(0);
+  const hasFittedRoute = useRef(false);
   const loaded = useRef(false);
 
   // init once
@@ -120,19 +133,30 @@ export function MapView({ mapRef, from, to, stops, route, me, driver }: Props) {
     }
   }, [mapRef, me]);
 
-  // live driver marker — reuse one marker and just move it (smooth via CSS transition)
+  // live driver marker — reuse one marker, move it (smooth via CSS transition) and turn it to
+  // face its heading, computed from consecutive fixes (GPS pings don't carry a compass bearing).
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     if (!driver) {
       driverMarker.current?.remove();
       driverMarker.current = null;
+      driverPrevPoint.current = null;
       return;
     }
+    const prev = driverPrevPoint.current;
+    if (prev && distanceMeters(prev, driver) > MIN_HEADING_DISTANCE_M) {
+      driverHeading.current = unwrapBearing(driverHeading.current, bearing(prev, driver));
+    }
+    driverPrevPoint.current = driver;
     if (!driverMarker.current) {
-      driverMarker.current = new maplibregl.Marker({ element: driverEl() }).setLngLat([driver.lng, driver.lat]).addTo(map);
+      driverMarker.current = new maplibregl.Marker({ element: driverEl(), rotationAlignment: "map" })
+        .setLngLat([driver.lng, driver.lat])
+        .setRotation(driverHeading.current)
+        .addTo(map);
     } else {
       driverMarker.current.setLngLat([driver.lng, driver.lat]);
+      driverMarker.current.setRotation(driverHeading.current);
     }
   }, [mapRef, driver]);
 
@@ -152,6 +176,8 @@ export function MapView({ mapRef, from, to, stops, route, me, driver }: Props) {
         properties: {},
         geometry: { type: "LineString", coordinates: route.coords.map((c) => [c[1], c[0]]) },
       });
+      if (!autoFit && hasFittedRoute.current) return;
+      hasFittedRoute.current = true;
       const lngs = route.coords.map((c) => c[1]);
       const lats = route.coords.map((c) => c[0]);
       map.fitBounds(
@@ -164,7 +190,7 @@ export function MapView({ mapRef, from, to, stops, route, me, driver }: Props) {
     };
     if (loaded.current) apply();
     else map.once("load", apply);
-  }, [mapRef, route]);
+  }, [mapRef, route, autoFit]);
 
   return <div id="map" ref={containerRef} />;
 }
