@@ -1,5 +1,7 @@
 package com.taxiplatform.infrastructure.websocket
 
+import com.taxiplatform.api.dto.AdminDriverLocationMessage
+import com.taxiplatform.api.dto.AdminDriverStatusMessage
 import com.taxiplatform.api.dto.GeoPointDto
 import com.taxiplatform.api.dto.RideChatMessage
 import com.taxiplatform.api.dto.RideLocationMessage
@@ -7,6 +9,7 @@ import com.taxiplatform.api.dto.RideOfferMessage
 import com.taxiplatform.api.dto.RideStatusMessage
 import com.taxiplatform.api.dto.SosAlertMessage
 import com.taxiplatform.application.ports.RideEventsPublisher
+import com.taxiplatform.domain.driver.DriverStatus
 import com.taxiplatform.domain.geo.GeoPoint
 import com.taxiplatform.domain.ride.Ride
 import com.taxiplatform.domain.ride.RideMessage
@@ -73,6 +76,20 @@ class SimpMessagingRideEventsPublisher(
 				lng = incident.point.lng,
 				createdAt = incident.createdAt,
 			),
+		)
+	}
+
+	override fun adminDriverLocation(driverId: UUID, point: GeoPoint) {
+		messagingTemplate.convertAndSend(
+			"/topic/admin/drivers",
+			AdminDriverLocationMessage(driverId = driverId, lat = point.lat, lng = point.lng),
+		)
+	}
+
+	override fun adminDriverStatusChanged(driverId: UUID, status: DriverStatus) {
+		messagingTemplate.convertAndSend(
+			"/topic/admin/drivers",
+			AdminDriverStatusMessage(driverId = driverId, status = status.name),
 		)
 	}
 }
