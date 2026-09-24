@@ -1,6 +1,9 @@
 package com.taxiplatform.infrastructure.security
 
 import com.taxiplatform.application.ports.JwtService
+import com.taxiplatform.application.ports.UserRepository
+import com.taxiplatform.domain.user.isBackOffice
+import com.taxiplatform.domain.user.permissions
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -15,6 +18,7 @@ class AuthenticatedPrincipal(val userId: java.util.UUID)
 @Component
 class JwtAuthFilter(
 	private val jwtService: JwtService,
+	private val userRepository: UserRepository,
 ) : OncePerRequestFilter() {
 
 	override fun doFilterInternal(
@@ -27,9 +31,19 @@ class JwtAuthFilter(
 			val token = header.removePrefix("Bearer ").trim()
 			val principal = jwtService.parse(token)
 			if (principal != null && SecurityContextHolder.getContext().authentication == null) {
-				val authorities = listOf(SimpleGrantedAuthority("ROLE_${principal.role.name}"))
+				// Read the current role and ban/2FA state so role changes and account blocks revoke
+				// existing tokens immediately instead of waiting for JWT expiration.
+				val user = userRepository.findById(principal.userId)
+				if (user == null || user.banned || (user.role.isBackOffice() && !user.twoFactorEnabled)) {
+					filterChain.doFilter(request, response)
+					return
+				}
+				val authorities = buildList {
+					add(SimpleGrantedAuthority("ROLE_${user.role.name}"))
+					user.role.permissions().forEach { add(SimpleGrantedAuthority(it.authority)) }
+				}
 				val authentication = UsernamePasswordAuthenticationToken(
-					AuthenticatedPrincipal(principal.userId),
+					AuthenticatedPrincipal(user.id),
 					null,
 					authorities,
 				)
