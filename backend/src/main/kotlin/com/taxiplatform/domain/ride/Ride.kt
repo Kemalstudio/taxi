@@ -23,12 +23,26 @@ enum class RideTariff {
 	ELECTRO,
 }
 
+enum class PaymentMethod {
+	CASH,
+	CARD,
+}
+
+enum class PaymentStatus {
+	NOT_APPLICABLE,
+	PENDING,
+	CONFIRMED,
+	FAILED,
+}
+
 data class Ride(
 	val id: UUID,
 	val passengerId: UUID,
 	val driverId: UUID?,
 	val pickup: GeoPoint,
 	val dropoff: GeoPoint,
+	val pickupLabel: String? = null,
+	val dropoffLabel: String? = null,
 	val status: RideStatus,
 	val requestedAt: Instant,
 	val scheduledAt: Instant?,
@@ -42,4 +56,8 @@ data class Ride(
 	val fare: Int? = null,
 	val promoCode: String? = null,
 	val discountApplied: Int? = null,
+	val surgeMultiplier: Double = 1.0,
+	val cancellationFee: Int? = null,
+	val paymentMethod: PaymentMethod = PaymentMethod.CASH,
+	val paymentStatus: PaymentStatus = PaymentStatus.NOT_APPLICABLE,
 )
