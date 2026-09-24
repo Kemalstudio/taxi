@@ -1,11 +1,24 @@
 package com.taxiplatform.infrastructure.persistence
 
+import com.taxiplatform.domain.audit.AuditLogEntry
+import com.taxiplatform.domain.auth.AdminTwoFactorChallenge
+import com.taxiplatform.domain.auth.AdminTwoFactorPurpose
+import com.taxiplatform.domain.auth.OtpChallenge
+import com.taxiplatform.domain.broadcast.BroadcastLog
+import com.taxiplatform.domain.broadcast.BroadcastSegment
+import com.taxiplatform.domain.payout.Payout
+import com.taxiplatform.domain.payout.PayoutStatus
 import com.taxiplatform.domain.driver.DriverProfile
 import com.taxiplatform.domain.driver.DriverStatus
+import com.taxiplatform.domain.driver.VerificationStatus
 import com.taxiplatform.domain.geo.GeoPoint
 import com.taxiplatform.domain.promo.DiscountType
 import com.taxiplatform.domain.promo.PromoCode
 import com.taxiplatform.domain.promo.PromoRedemption
+import com.taxiplatform.domain.push.PushSubscription
+import com.taxiplatform.domain.settings.PlatformSetting
+import com.taxiplatform.domain.ride.PaymentMethod
+import com.taxiplatform.domain.ride.PaymentStatus
 import com.taxiplatform.domain.ride.Ride
 import com.taxiplatform.domain.ride.RideMessage
 import com.taxiplatform.domain.ride.RideOffer
@@ -16,10 +29,22 @@ import com.taxiplatform.domain.ride.RideTariff
 import com.taxiplatform.domain.ride.SosIncident
 import com.taxiplatform.domain.user.Role
 import com.taxiplatform.domain.user.User
+import com.taxiplatform.infrastructure.persistence.entity.AuditLogEntryEntity
+import com.taxiplatform.infrastructure.persistence.entity.AdminTwoFactorChallengeEntity
+import com.taxiplatform.infrastructure.persistence.entity.AdminTwoFactorPurposeEntity
+import com.taxiplatform.infrastructure.persistence.entity.BroadcastLogEntity
+import com.taxiplatform.infrastructure.persistence.entity.BroadcastSegmentEntity
 import com.taxiplatform.infrastructure.persistence.entity.DiscountTypeEntity
+import com.taxiplatform.infrastructure.persistence.entity.PayoutEntity
+import com.taxiplatform.infrastructure.persistence.entity.PayoutStatusEntity
 import com.taxiplatform.infrastructure.persistence.entity.DriverProfileEntity
+import com.taxiplatform.infrastructure.persistence.entity.OtpChallengeEntity
 import com.taxiplatform.infrastructure.persistence.entity.DriverStatusEntity
+import com.taxiplatform.infrastructure.persistence.entity.PaymentMethodEntity
+import com.taxiplatform.infrastructure.persistence.entity.PaymentStatusEntity
+import com.taxiplatform.infrastructure.persistence.entity.PlatformSettingEntity
 import com.taxiplatform.infrastructure.persistence.entity.PromoCodeEntity
+import com.taxiplatform.infrastructure.persistence.entity.PushSubscriptionEntity
 import com.taxiplatform.infrastructure.persistence.entity.PromoRedemptionEntity
 import com.taxiplatform.infrastructure.persistence.entity.RideEntity
 import com.taxiplatform.infrastructure.persistence.entity.RideMessageEntity
@@ -31,6 +56,7 @@ import com.taxiplatform.infrastructure.persistence.entity.RideTariffEntity
 import com.taxiplatform.infrastructure.persistence.entity.RoleEntity
 import com.taxiplatform.infrastructure.persistence.entity.SosIncidentEntity
 import com.taxiplatform.infrastructure.persistence.entity.UserEntity
+import com.taxiplatform.infrastructure.persistence.entity.VerificationStatusEntity
 
 fun UserEntity.toDomain() = User(
 	id = id,
@@ -41,6 +67,13 @@ fun UserEntity.toDomain() = User(
 	phone = phone,
 	createdAt = createdAt,
 	loyaltyPoints = loyaltyPoints,
+	banned = banned,
+	bannedReason = bannedReason,
+	bannedAt = bannedAt,
+	twoFactorEnabled = twoFactorEnabled,
+	twoFactorSecret = twoFactorSecret,
+	twoFactorVerifiedAt = twoFactorVerifiedAt,
+	twoFactorLastUsedStep = twoFactorLastUsedStep,
 )
 
 fun User.toEntity() = UserEntity(
@@ -52,6 +85,35 @@ fun User.toEntity() = UserEntity(
 	phone = phone,
 	createdAt = createdAt,
 	loyaltyPoints = loyaltyPoints,
+	banned = banned,
+	bannedReason = bannedReason,
+	bannedAt = bannedAt,
+	twoFactorEnabled = twoFactorEnabled,
+	twoFactorSecret = twoFactorSecret,
+	twoFactorVerifiedAt = twoFactorVerifiedAt,
+	twoFactorLastUsedStep = twoFactorLastUsedStep,
+)
+
+fun AdminTwoFactorChallengeEntity.toDomain() = AdminTwoFactorChallenge(
+	id = id,
+	userId = userId,
+	purpose = AdminTwoFactorPurpose.valueOf(purpose.name),
+	pendingSecret = pendingSecret,
+	expiresAt = expiresAt,
+	consumedAt = consumedAt,
+	failedAttempts = failedAttempts,
+	createdAt = createdAt,
+)
+
+fun AdminTwoFactorChallenge.toEntity() = AdminTwoFactorChallengeEntity(
+	id = id,
+	userId = userId,
+	purpose = AdminTwoFactorPurposeEntity.valueOf(purpose.name),
+	pendingSecret = pendingSecret,
+	expiresAt = expiresAt,
+	consumedAt = consumedAt,
+	failedAttempts = failedAttempts,
+	createdAt = createdAt,
 )
 
 fun DriverProfileEntity.toDomain() = DriverProfile(
@@ -62,6 +124,10 @@ fun DriverProfileEntity.toDomain() = DriverProfile(
 	plateNumber = plateNumber,
 	rating = rating,
 	updatedAt = updatedAt,
+	verificationStatus = VerificationStatus.valueOf(verificationStatus.name),
+	rejectionReason = rejectionReason,
+	licenseDocPath = licenseDocPath,
+	vehicleDocPath = vehicleDocPath,
 )
 
 fun DriverProfile.toEntity() = DriverProfileEntity(
@@ -72,6 +138,10 @@ fun DriverProfile.toEntity() = DriverProfileEntity(
 	plateNumber = plateNumber,
 	rating = rating,
 	updatedAt = updatedAt,
+	verificationStatus = VerificationStatusEntity.valueOf(verificationStatus.name),
+	rejectionReason = rejectionReason,
+	licenseDocPath = licenseDocPath,
+	vehicleDocPath = vehicleDocPath,
 )
 
 fun RideEntity.toDomain() = Ride(
@@ -80,6 +150,8 @@ fun RideEntity.toDomain() = Ride(
 	driverId = driverId,
 	pickup = GeoPoint(pickupLat, pickupLng),
 	dropoff = GeoPoint(dropoffLat, dropoffLng),
+	pickupLabel = pickupLabel,
+	dropoffLabel = dropoffLabel,
 	status = RideStatus.valueOf(status.name),
 	requestedAt = requestedAt,
 	scheduledAt = scheduledAt,
@@ -93,6 +165,10 @@ fun RideEntity.toDomain() = Ride(
 	fare = fare,
 	promoCode = promoCode,
 	discountApplied = discountApplied,
+	surgeMultiplier = surgeMultiplier,
+	cancellationFee = cancellationFee,
+	paymentMethod = PaymentMethod.valueOf(paymentMethod.name),
+	paymentStatus = PaymentStatus.valueOf(paymentStatus.name),
 )
 
 fun Ride.toEntity() = RideEntity(
@@ -103,6 +179,8 @@ fun Ride.toEntity() = RideEntity(
 	pickupLng = pickup.lng,
 	dropoffLat = dropoff.lat,
 	dropoffLng = dropoff.lng,
+	pickupLabel = pickupLabel,
+	dropoffLabel = dropoffLabel,
 	status = RideStatusEntity.valueOf(status.name),
 	requestedAt = requestedAt,
 	scheduledAt = scheduledAt,
@@ -116,6 +194,10 @@ fun Ride.toEntity() = RideEntity(
 	fare = fare,
 	promoCode = promoCode,
 	discountApplied = discountApplied,
+	surgeMultiplier = surgeMultiplier,
+	cancellationFee = cancellationFee,
+	paymentMethod = PaymentMethodEntity.valueOf(paymentMethod.name),
+	paymentStatus = PaymentStatusEntity.valueOf(paymentStatus.name),
 )
 
 fun RideRatingEntity.toDomain() = RideRating(
@@ -232,3 +314,111 @@ fun RideOffer.toEntity() = RideOfferEntity(
 	expiresAt = expiresAt,
 	respondedAt = respondedAt,
 )
+
+fun PushSubscriptionEntity.toDomain() = PushSubscription(
+	id = id,
+	userId = userId,
+	endpoint = endpoint,
+	p256dh = p256dh,
+	auth = auth,
+	createdAt = createdAt,
+)
+
+fun PushSubscription.toEntity() = PushSubscriptionEntity(
+	id = id,
+	userId = userId,
+	endpoint = endpoint,
+	p256dh = p256dh,
+	auth = auth,
+	createdAt = createdAt,
+)
+
+fun OtpChallengeEntity.toDomain() = OtpChallenge(
+	id = id,
+	phone = phone,
+	code = code,
+	expiresAt = expiresAt,
+	consumedAt = consumedAt,
+	createdAt = createdAt,
+)
+
+fun OtpChallenge.toEntity() = OtpChallengeEntity(
+	id = id,
+	phone = phone,
+	code = code,
+	expiresAt = expiresAt,
+	consumedAt = consumedAt,
+	createdAt = createdAt,
+)
+
+fun PlatformSettingEntity.toDomain() = PlatformSetting(key = key, value = value, updatedAt = updatedAt)
+
+fun AuditLogEntryEntity.toDomain() = AuditLogEntry(
+	id = id,
+	actorId = actorId,
+	actorName = actorName,
+	action = action,
+	targetType = targetType,
+	targetId = targetId,
+	details = details,
+	createdAt = createdAt,
+)
+
+fun AuditLogEntry.toEntity() = AuditLogEntryEntity(
+	id = id,
+	actorId = actorId,
+	actorName = actorName,
+	action = action,
+	targetType = targetType,
+	targetId = targetId,
+	details = details,
+	createdAt = createdAt,
+)
+
+fun PayoutEntity.toDomain() = Payout(
+	id = id,
+	driverId = driverId,
+	periodFrom = periodFrom,
+	periodTo = periodTo,
+	amount = amount,
+	rideCount = rideCount,
+	status = PayoutStatus.valueOf(status.name),
+	createdAt = createdAt,
+	paidAt = paidAt,
+)
+
+fun Payout.toEntity() = PayoutEntity(
+	id = id,
+	driverId = driverId,
+	periodFrom = periodFrom,
+	periodTo = periodTo,
+	amount = amount,
+	rideCount = rideCount,
+	status = PayoutStatusEntity.valueOf(status.name),
+	createdAt = createdAt,
+	paidAt = paidAt,
+)
+
+fun BroadcastLogEntity.toDomain() = BroadcastLog(
+	id = id,
+	actorId = actorId,
+	actorName = actorName,
+	segment = BroadcastSegment.valueOf(segment.name),
+	title = title,
+	body = body,
+	recipientCount = recipientCount,
+	createdAt = createdAt,
+)
+
+fun BroadcastLog.toEntity() = BroadcastLogEntity(
+	id = id,
+	actorId = actorId,
+	actorName = actorName,
+	segment = BroadcastSegmentEntity.valueOf(segment.name),
+	title = title,
+	body = body,
+	recipientCount = recipientCount,
+	createdAt = createdAt,
+)
+
+fun PlatformSetting.toEntity() = PlatformSettingEntity(key = key, value = value, updatedAt = updatedAt)
