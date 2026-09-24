@@ -11,6 +11,7 @@ interface Props {
   fareText: string;
   distText: string;
   timeText: string;
+  surgeMultiplier?: number;
   canOrder: boolean;
   orderLabel: string;
   hint: string;
@@ -39,7 +40,10 @@ export function ScheduleCard(p: Props) {
 
       <div className="fare-card">
         <div className="fare-left">
-          <div className="fl-k">{t("sch.fare")}</div>
+          <div className="fl-k">
+            {t("sch.fare")}
+            {(p.surgeMultiplier ?? 1) > 1 && <span className="surge-badge">×{p.surgeMultiplier}</span>}
+          </div>
           <div className="fl-v">{p.fareText}</div>
         </div>
         <div className="fare-right">
