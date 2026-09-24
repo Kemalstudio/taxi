@@ -1,6 +1,7 @@
 package com.taxiplatform.api.dto
 
 import com.taxiplatform.application.ride.RideDetails
+import com.taxiplatform.domain.ride.PaymentMethod
 import com.taxiplatform.domain.ride.Ride
 import com.taxiplatform.domain.ride.RideTariff
 import jakarta.validation.constraints.DecimalMax
@@ -19,16 +20,38 @@ data class GeoPointRequest(
 data class RequestRideRequest(
 	val pickup: GeoPointRequest,
 	val dropoff: GeoPointRequest,
+	/** Human-readable addresses, for display in ride history / admin — purely cosmetic. */
+	val pickupLabel: String? = null,
+	val dropoffLabel: String? = null,
 	/** Optional ISO-8601 instant to book the ride for later. */
 	val scheduledAt: Instant? = null,
 	val tariff: RideTariff = RideTariff.ECONOMY,
-	/** Client-estimated fare (before any promo discount); the backend doesn't compute routes/fares itself. */
+	/** Route distance from the client's routing — the backend prices from this when present. */
+	val km: Double? = null,
+	/** Fallback fare, used only when [km] isn't supplied. */
 	val fare: Int? = null,
 	val promoCode: String? = null,
+	val paymentMethod: PaymentMethod = PaymentMethod.CASH,
 )
 
 data class CancelRideRequest(
 	val reason: String?,
+)
+
+/** Admin-only — omit [driverId] to unassign and let dispatch redispatch automatically. */
+data class ReassignRideRequest(
+	val driverId: UUID? = null,
+)
+
+data class PriceQuoteRequest(
+	val km: Double,
+	val tariff: RideTariff = RideTariff.ECONOMY,
+)
+
+data class PriceQuoteResponse(
+	val baseFare: Int,
+	val surgeMultiplier: Double,
+	val finalFare: Int,
 )
 
 data class DriverInfoDto(
@@ -47,6 +70,8 @@ data class RideResponse(
 	val driverId: UUID?,
 	val pickup: GeoPointDto,
 	val dropoff: GeoPointDto,
+	val pickupLabel: String?,
+	val dropoffLabel: String?,
 	val status: String,
 	val requestedAt: Instant,
 	val scheduledAt: Instant?,
@@ -60,6 +85,12 @@ data class RideResponse(
 	val fare: Int?,
 	val promoCode: String?,
 	val discountApplied: Int?,
+	val surgeMultiplier: Double,
+	val cancellationFee: Int?,
+	/** What cancelling *right now* would cost — only populated on `GET /rides/{id}`, null elsewhere. */
+	val estimatedCancellationFee: Int? = null,
+	val paymentMethod: String,
+	val paymentStatus: String,
 	val driver: DriverInfoDto? = null,
 ) {
 	companion object {
@@ -69,6 +100,8 @@ data class RideResponse(
 			driverId = ride.driverId,
 			pickup = GeoPointDto(ride.pickup.lat, ride.pickup.lng),
 			dropoff = GeoPointDto(ride.dropoff.lat, ride.dropoff.lng),
+			pickupLabel = ride.pickupLabel,
+			dropoffLabel = ride.dropoffLabel,
 			status = ride.status.name,
 			requestedAt = ride.requestedAt,
 			scheduledAt = ride.scheduledAt,
@@ -82,10 +115,14 @@ data class RideResponse(
 			fare = ride.fare,
 			promoCode = ride.promoCode,
 			discountApplied = ride.discountApplied,
+			surgeMultiplier = ride.surgeMultiplier,
+			cancellationFee = ride.cancellationFee,
+			paymentMethod = ride.paymentMethod.name,
+			paymentStatus = ride.paymentStatus.name,
 		)
 
 		fun from(details: RideDetails): RideResponse {
-			val base = from(details.ride)
+			val base = from(details.ride).copy(estimatedCancellationFee = details.estimatedCancellationFee)
 			val driverUser = details.driverUser
 			val driverProfile = details.driverProfile
 			if (driverUser == null || driverProfile == null) return base
@@ -101,5 +138,32 @@ data class RideResponse(
 				),
 			)
 		}
+	}
+}
+
+/** One row of the passenger's ride-history list — lighter than [RideResponse], no driver lookup. */
+data class RideSummaryResponse(
+	val id: UUID,
+	val requestedAt: Instant,
+	val pickupLabel: String?,
+	val dropoffLabel: String?,
+	val status: String,
+	val tariff: String,
+	val fare: Int?,
+	val paymentMethod: String,
+	val paymentStatus: String,
+) {
+	companion object {
+		fun from(ride: Ride) = RideSummaryResponse(
+			id = ride.id,
+			requestedAt = ride.requestedAt,
+			pickupLabel = ride.pickupLabel,
+			dropoffLabel = ride.dropoffLabel,
+			status = ride.status.name,
+			tariff = ride.tariff.name,
+			fare = ride.fare,
+			paymentMethod = ride.paymentMethod.name,
+			paymentStatus = ride.paymentStatus.name,
+		)
 	}
 }
