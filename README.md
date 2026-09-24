@@ -149,15 +149,20 @@ WebSocket feed for the live driver map), Recharts for analytics, and Leaflet
 
 ### Backend additions for this phase
 
-- `ADMIN`, `OPERATOR`, `DISPATCHER`, `SUPER_ADMIN` roles; an admin user is
+- `SUPER_ADMIN`, `ADMIN`, `DISPATCHER`, `MODERATOR`, `ACCOUNTANT` roles (plus
+  the legacy read-only `OPERATOR`) with endpoint-level permissions; an admin user is
   **seeded on startup** if none exists (`admin@taxi.local` by default —
   override with `ADMIN_EMAIL` / `ADMIN_PASSWORD`; disable with
   `ADMIN_SEED_ENABLED=false`).
-- Admin-only endpoints under `/admin/**` (require an ADMIN or OPERATOR JWT;
-  a few sensitive ones — user/role management, payment confirmation, promo
-  codes, driver verification/ban — are ADMIN-only): stats, rides, drivers
+- Back-office endpoints under `/admin/**` enforce granular permissions for
+  dashboards, dispatch, moderation, finance, settings, notifications and role
+  management: stats, rides, drivers
   (incl. verification/ban), users, promo codes, pricing settings, revenue,
   system status. See `AdminController.kt` for the full list.
+- Back-office sign-in always uses RFC 6238 TOTP 2FA. On the first login the
+  configured seed account is shown an authenticator setup key; no admin JWT is
+  issued until the six-digit code is verified. Set a production-only
+  `TOTP_ENCRYPTION_KEY` (32+ characters) and disable the seed account after bootstrap.
 - CORS is enabled for the website origin
   (`CORS_ALLOWED_ORIGINS`, default `http://localhost:5174`).
 
