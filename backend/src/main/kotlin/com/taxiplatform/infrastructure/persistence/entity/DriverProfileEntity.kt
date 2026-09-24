@@ -35,10 +35,29 @@ class DriverProfileEntity(
 
 	@Column(name = "updated_at", nullable = false)
 	val updatedAt: Instant,
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "verification_status", nullable = false)
+	val verificationStatus: VerificationStatusEntity = VerificationStatusEntity.PENDING,
+
+	@Column(name = "rejection_reason")
+	val rejectionReason: String? = null,
+
+	@Column(name = "license_doc_path")
+	val licenseDocPath: String? = null,
+
+	@Column(name = "vehicle_doc_path")
+	val vehicleDocPath: String? = null,
 )
 
 enum class DriverStatusEntity {
 	OFFLINE,
 	ONLINE,
 	BUSY,
+}
+
+enum class VerificationStatusEntity {
+	PENDING,
+	APPROVED,
+	REJECTED,
 }
