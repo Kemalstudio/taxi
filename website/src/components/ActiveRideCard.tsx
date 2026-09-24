@@ -19,6 +19,9 @@ export function ActiveRideCard({ ride, onChat, onSos, onCancel, unreadChat }: Pr
   return (
     <div className="active-ride-card">
       <div className="arc-status">{t(`ride.status.${ride.status}`)}</div>
+      {ride.paymentMethod === "CARD" && ride.paymentStatus === "PENDING" && (
+        <div className="arc-pay-badge">{t("pay.pending")}</div>
+      )}
 
       {driver && (
         <div className="arc-driver">
