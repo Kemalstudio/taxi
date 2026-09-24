@@ -33,6 +33,12 @@ class RideEntity(
 	@Column(name = "dropoff_lng", nullable = false)
 	val dropoffLng: Double,
 
+	@Column(name = "pickup_label")
+	val pickupLabel: String?,
+
+	@Column(name = "dropoff_label")
+	val dropoffLabel: String?,
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	val status: RideStatusEntity,
@@ -72,6 +78,20 @@ class RideEntity(
 
 	@Column(name = "discount_applied")
 	val discountApplied: Int?,
+
+	@Column(name = "surge_multiplier", nullable = false)
+	val surgeMultiplier: Double = 1.0,
+
+	@Column(name = "cancellation_fee")
+	val cancellationFee: Int?,
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "payment_method", nullable = false)
+	val paymentMethod: PaymentMethodEntity = PaymentMethodEntity.CASH,
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "payment_status", nullable = false)
+	val paymentStatus: PaymentStatusEntity = PaymentStatusEntity.NOT_APPLICABLE,
 )
 
 enum class RideStatusEntity {
@@ -91,4 +111,16 @@ enum class RideTariffEntity {
 	COMFORT,
 	BUSINESS,
 	ELECTRO,
+}
+
+enum class PaymentMethodEntity {
+	CASH,
+	CARD,
+}
+
+enum class PaymentStatusEntity {
+	NOT_APPLICABLE,
+	PENDING,
+	CONFIRMED,
+	FAILED,
 }
