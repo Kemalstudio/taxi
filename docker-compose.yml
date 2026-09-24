@@ -38,6 +38,7 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       JWT_SECRET: local-dev-secret-change-me-please-32bytes-min
+      TOTP_ENCRYPTION_KEY: local-dev-totp-encryption-key-change-me-32bytes
     ports:
       - "8080:8080"
     depends_on:
