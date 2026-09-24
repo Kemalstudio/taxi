@@ -5,34 +5,52 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Deep graphite-navy instrument-panel scale — a control-room black, not a warm "SaaS ink".
         ink: {
-          900: "#0E111A",
-          800: "#151925",
-          700: "#1B1F2A",
-          600: "#232838",
-          500: "#2E3446",
-        },
-        amber: {
-          DEFAULT: "#F5A623",
-          soft: "#F7B84E",
-          muted: "rgba(245, 166, 35, 0.12)",
+          900: "#0A0E13",
+          800: "#10151C",
+          700: "#161C25",
+          600: "#1D242F",
+          500: "#29323F",
         },
         mist: {
-          100: "#F4F6FB",
-          300: "#C7CEDB",
-          500: "#8B93A7",
-          600: "#6B7385",
+          100: "#EDF1F4",
+          300: "#B8C2CC",
+          500: "#7C8894",
+          600: "#5C6672",
         },
-        success: "#2ECC71",
-        danger: "#FF5A5F",
-        info: "#4C8DFF",
+        // Brand / "live signal" accent — a GPS-blip teal, deliberately not the generic
+        // amber-glow-on-black look. `amber` stays reserved purely for the warning semantic below.
+        accent: {
+          DEFAULT: "#35D0BE",
+          soft: "#5FE0D2",
+          muted: "rgba(53, 208, 190, 0.14)",
+        },
+        amber: {
+          DEFAULT: "#E8A23D",
+          soft: "#F0B767",
+          muted: "rgba(232, 162, 61, 0.14)",
+        },
+        success: "#3DCB78",
+        danger: "#F0555F",
+        info: "#5B8CF0",
+        violet: "#9370F5",
+        chart: {
+          1: "#35D0BE",
+          2: "#5B8CF0",
+          3: "#3DCB78",
+          4: "#F0555F",
+          5: "#7C8894",
+          6: "#E8A23D",
+        },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        sans: ["IBM Plex Sans", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        mono: ["IBM Plex Mono", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
       },
       boxShadow: {
-        glass: "0 8px 32px rgba(0, 0, 0, 0.35)",
-        glow: "0 0 0 1px rgba(245, 166, 35, 0.25), 0 8px 24px rgba(245, 166, 35, 0.12)",
+        panel: "0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 24px -12px rgba(0, 0, 0, 0.5)",
+        glow: "0 0 0 1px rgba(53, 208, 190, 0.25), 0 8px 24px rgba(53, 208, 190, 0.12)",
       },
       backdropBlur: {
         xs: "2px",
