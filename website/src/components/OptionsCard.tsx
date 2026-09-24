@@ -1,4 +1,4 @@
-import { MessageSquare, UserPlus, ChevronRight, MessageCircle, Accessibility } from "lucide-react";
+import { MessageSquare, UserPlus, ChevronRight, MessageCircle, Accessibility, PawPrint, Baby, Luggage } from "lucide-react";
 import { useI18n } from "../i18n";
 
 export interface OptionsState {
@@ -8,6 +8,9 @@ export interface OptionsState {
   otherPhone: string;
   textOnly: boolean;
   wheelchair: boolean;
+  withPet: boolean;
+  childSeat: boolean;
+  extraLuggage: boolean;
 }
 
 interface Props {
@@ -75,6 +78,27 @@ export function OptionsCard({ value, onChange }: Props) {
         </span>
         <span className="rt-t">{t("opt.wheelchair")}</span>
         <span className={`switch${value.wheelchair ? " on" : ""}`} />
+      </button>
+      <button className="row-toggle" onClick={() => onChange({ withPet: !value.withPet })}>
+        <span className="rt-ic">
+          <PawPrint size={20} />
+        </span>
+        <span className="rt-t">{t("opt.pet")}</span>
+        <span className={`switch${value.withPet ? " on" : ""}`} />
+      </button>
+      <button className="row-toggle" onClick={() => onChange({ childSeat: !value.childSeat })}>
+        <span className="rt-ic">
+          <Baby size={20} />
+        </span>
+        <span className="rt-t">{t("opt.childSeat")}</span>
+        <span className={`switch${value.childSeat ? " on" : ""}`} />
+      </button>
+      <button className="row-toggle" onClick={() => onChange({ extraLuggage: !value.extraLuggage })}>
+        <span className="rt-ic">
+          <Luggage size={20} />
+        </span>
+        <span className="rt-t">{t("opt.extraLuggage")}</span>
+        <span className={`switch${value.extraLuggage ? " on" : ""}`} />
       </button>
     </div>
   );
