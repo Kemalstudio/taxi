@@ -11,9 +11,12 @@
 
   .admin-shell {
     @apply bg-ink-900 text-mist-100 font-sans antialiased;
+    /* A faint coordinate grid instead of gradient blobs — the shell reads as an instrument
+       panel, not a glowing SaaS card. Barely visible; it's texture, not decoration. */
     background-image:
-      radial-gradient(1200px 600px at 15% -10%, rgba(245, 166, 35, 0.08), transparent 60%),
-      radial-gradient(900px 500px at 100% 0%, rgba(76, 141, 255, 0.06), transparent 55%);
+      linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
     background-attachment: fixed;
   }
 
@@ -24,44 +27,18 @@
 }
 
 @layer components {
-  .glass {
-    @apply rounded-xl2 border border-white/5 bg-ink-800/60 shadow-glass backdrop-blur-xl;
-  }
-
-  .glass-hover {
-    @apply transition-all duration-200 hover:border-amber/30 hover:shadow-glow;
-  }
-
+  /* Native <input>/<select> field styling — the one component class actually consumed
+     (by ui/input.tsx). Flat panel, no blur, accent-teal focus ring. */
   .field {
-    @apply w-full rounded-xl border border-white/10 bg-ink-700/70 px-4 py-3 text-mist-100
+    @apply w-full rounded-xl border border-white/10 bg-ink-700 px-4 py-3 text-mist-100
       placeholder:text-mist-600 outline-none transition
-      focus:border-amber/60 focus:ring-2 focus:ring-amber/20;
-  }
-
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-amber px-5 py-3
-      font-semibold text-ink-900 transition
-      hover:bg-amber-soft active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
-  }
-
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10
-      px-4 py-2 text-mist-300 transition hover:border-white/20 hover:text-mist-100;
-  }
-
-  .nav-item {
-    @apply flex items-center gap-3 rounded-xl px-4 py-3 text-mist-500 transition
-      hover:bg-white/5 hover:text-mist-100;
-  }
-
-  .nav-item-active {
-    @apply bg-amber-muted text-amber;
+      focus:border-accent/60 focus:ring-2 focus:ring-accent/20;
   }
 }
 
 /* Leaflet renders on a light canvas by default; tone it down for the dark shell. */
 .leaflet-container {
-  background: #10131c;
+  background: #10151c;
 }
 .leaflet-tile {
   filter: brightness(0.7) invert(0.92) hue-rotate(180deg) contrast(0.9) saturate(0.6);
@@ -72,4 +49,20 @@
 }
 .leaflet-control-attribution a {
   color: #8b93a7 !important;
+}
+
+/* Live driver markers: Leaflet moves the outer .leaflet-marker-icon via a transform it sets in
+   JS on every position update — a CSS transition on that same property is enough to turn a hard
+   jump into a glide. Heading rotation lives on the inner div so it can animate independently. */
+.leaflet-marker-icon.driver-marker {
+  background: transparent;
+  border: none;
+  transition: transform 0.9s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.driver-marker-icon {
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+  transition: transform 0.4s ease-out;
+  transform-origin: 50% 50%;
 }
