@@ -35,6 +35,27 @@ class UserEntity(
 
 	@Column(name = "loyalty_points", nullable = false)
 	val loyaltyPoints: Int = 0,
+
+	@Column(nullable = false)
+	val banned: Boolean = false,
+
+	@Column(name = "banned_reason")
+	val bannedReason: String? = null,
+
+	@Column(name = "banned_at")
+	val bannedAt: Instant? = null,
+
+	@Column(name = "two_factor_enabled", nullable = false)
+	val twoFactorEnabled: Boolean = false,
+
+	@Column(name = "two_factor_secret")
+	val twoFactorSecret: String? = null,
+
+	@Column(name = "two_factor_verified_at")
+	val twoFactorVerifiedAt: Instant? = null,
+
+	@Column(name = "two_factor_last_used_step")
+	val twoFactorLastUsedStep: Long? = null,
 )
 
 enum class RoleEntity {
@@ -42,6 +63,8 @@ enum class RoleEntity {
 	DRIVER,
 	OPERATOR,
 	DISPATCHER,
+	MODERATOR,
+	ACCOUNTANT,
 	ADMIN,
 	SUPER_ADMIN,
 }
