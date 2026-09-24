@@ -1,4 +1,4 @@
-import type { ChatMessage, GeoPoint, RideDetails, RideTariff } from "../types";
+import type { ChatMessage, GeoPoint, PaymentMethod, RideDetails, RideSummary, RideTariff } from "../types";
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 const TOKEN_KEY = "taksi_token";
@@ -90,6 +90,23 @@ async function get<T>(path: string, auth = true): Promise<T> {
   return handle<T>(res);
 }
 
+async function del(path: string, body: unknown, auth = false): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...(auth && token.get() ? { Authorization: `Bearer ${token.get()}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new NetworkError("backend unreachable");
+  }
+  if (!res.ok) throw new ApiError(`HTTP ${res.status}`);
+}
+
 export async function register(phone: string, password: string, fullName: string): Promise<AuthResponse> {
   const data = await post<AuthResponse>("/auth/register", {
     email: phoneToEmail(phone),
@@ -116,6 +133,20 @@ export async function login(identifier: string, password: string): Promise<AuthR
   return data;
 }
 
+/** Sends an SMS OTP code to the given phone (any format — the backend normalizes it). */
+export async function requestOtp(phone: string): Promise<void> {
+  await post<void>("/auth/otp/request", { phone });
+}
+
+/** Verifies the code, signing in an existing phone or creating a new PASSENGER account. */
+export async function verifyOtp(phone: string, code: string): Promise<AuthResponse> {
+  const data = await post<AuthResponse>("/auth/otp/verify", { phone, code });
+  token.set(data.token);
+  userId.set(data.userId);
+  role.set(data.role);
+  return data;
+}
+
 export interface RideResponse {
   id: string;
   status: string;
@@ -129,20 +160,26 @@ export interface RideResponse {
 export async function createRide(
   pickup: GeoPoint,
   dropoff: GeoPoint,
+  km: number,
   scheduledAt?: string,
   tariff?: RideTariff,
   fare?: number,
   promoCode?: string,
+  paymentMethod?: PaymentMethod,
 ): Promise<RideResponse> {
   return post<RideResponse>(
     "/rides",
     {
       pickup: { lat: pickup.lat, lng: pickup.lng },
       dropoff: { lat: dropoff.lat, lng: dropoff.lng },
+      pickupLabel: pickup.label,
+      dropoffLabel: dropoff.label,
+      km,
       ...(scheduledAt ? { scheduledAt } : {}),
       ...(tariff ? { tariff } : {}),
       ...(fare != null ? { fare } : {}),
       ...(promoCode ? { promoCode } : {}),
+      ...(paymentMethod ? { paymentMethod } : {}),
     },
     true,
   );
@@ -151,6 +188,22 @@ export async function createRide(
 /** Full ride details (including driver info once assigned) — polled after ordering. */
 export function getRide(rideId: string): Promise<RideDetails> {
   return get<RideDetails>(`/rides/${rideId}`);
+}
+
+/** The signed-in passenger's own past rides, newest first. */
+export function getMyRides(limit = 30): Promise<RideSummary[]> {
+  return get<RideSummary[]>(`/rides?limit=${limit}`);
+}
+
+export interface PriceQuote {
+  baseFare: number;
+  surgeMultiplier: number;
+  finalFare: number;
+}
+
+/** Server-authoritative fare (base + tariff + surge) for a given route distance. */
+export function getPriceQuote(km: number, tariff: RideTariff): Promise<PriceQuote> {
+  return post<PriceQuote>("/pricing/quote", { km, tariff }, true);
 }
 
 export function cancelRide(rideId: string): Promise<unknown> {
@@ -193,4 +246,17 @@ export interface Me {
 
 export function getMe(): Promise<Me> {
   return get<Me>("/me");
+}
+
+export function registerPushSubscription(endpoint: string, keys: { p256dh: string; auth: string }): Promise<unknown> {
+  return post("/me/push-subscription", { endpoint, keys }, true);
+}
+
+/** Admin-editable overrides (colors, map theme, ...) — public, no auth needed to read. */
+export function getPlatformSettings(): Promise<Record<string, string>> {
+  return get<{ settings: Record<string, string> }>("/settings", false).then((r) => r.settings);
+}
+
+export function unregisterPushSubscription(endpoint: string): Promise<void> {
+  return del("/me/push-subscription", { endpoint }, true);
 }
