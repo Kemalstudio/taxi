@@ -6,6 +6,7 @@ import com.taxiplatform.api.dto.RateRideRequest
 import com.taxiplatform.api.dto.RatingResponse
 import com.taxiplatform.api.dto.RequestRideRequest
 import com.taxiplatform.api.dto.RideResponse
+import com.taxiplatform.api.dto.RideSummaryResponse
 import com.taxiplatform.api.dto.SendMessageRequest
 import com.taxiplatform.api.dto.SosIncidentResponse
 import com.taxiplatform.api.dto.TriggerSosRequest
@@ -18,6 +19,7 @@ import com.taxiplatform.application.rating.RateRideUseCase
 import com.taxiplatform.application.ride.CancelRideUseCase
 import com.taxiplatform.application.ride.DriverRideLifecycleUseCase
 import com.taxiplatform.application.ride.GetRideUseCase
+import com.taxiplatform.application.ride.ListMyRidesUseCase
 import com.taxiplatform.application.ride.RequestRideCommand
 import com.taxiplatform.application.ride.RequestRideUseCase
 import com.taxiplatform.application.safety.TriggerSosCommand
@@ -34,6 +36,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -42,6 +45,7 @@ import java.util.UUID
 class RideController(
 	private val requestRideUseCase: RequestRideUseCase,
 	private val getRideUseCase: GetRideUseCase,
+	private val listMyRidesUseCase: ListMyRidesUseCase,
 	private val cancelRideUseCase: CancelRideUseCase,
 	private val dispatchService: DispatchService,
 	private val driverRideLifecycleUseCase: DriverRideLifecycleUseCase,
@@ -62,14 +66,26 @@ class RideController(
 				passengerId = principal.userId,
 				pickup = GeoPoint(request.pickup.lat, request.pickup.lng),
 				dropoff = GeoPoint(request.dropoff.lat, request.dropoff.lng),
+				pickupLabel = request.pickupLabel,
+				dropoffLabel = request.dropoffLabel,
 				scheduledAt = request.scheduledAt,
 				tariff = request.tariff,
+				km = request.km,
 				fare = request.fare,
 				promoCode = request.promoCode,
+				paymentMethod = request.paymentMethod,
 			),
 		)
 		return ResponseEntity.status(HttpStatus.CREATED).body(RideResponse.from(ride))
 	}
+
+	@GetMapping
+	@PreAuthorize("hasRole('PASSENGER')")
+	fun myRides(
+		@AuthenticationPrincipal principal: AuthenticatedPrincipal,
+		@RequestParam(defaultValue = "30") limit: Int,
+	): List<RideSummaryResponse> =
+		listMyRidesUseCase.execute(principal.userId, limit).map(RideSummaryResponse::from)
 
 	@GetMapping("/{rideId}")
 	fun getRide(@PathVariable rideId: UUID): ResponseEntity<RideResponse> =
