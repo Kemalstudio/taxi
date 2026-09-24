@@ -1,6 +1,10 @@
 package com.taxiplatform.application.ride
 
 import com.taxiplatform.application.dispatch.DispatchService
+import com.taxiplatform.application.payment.PaymentPort
+import com.taxiplatform.application.pricing.CancellationFeePolicy
+import com.taxiplatform.application.pricing.PricingService
+import com.taxiplatform.application.ports.DriverGeoIndex
 import com.taxiplatform.application.ports.DriverProfileRepository
 import com.taxiplatform.application.ports.PromoCodeRepository
 import com.taxiplatform.application.ports.PromoRedemptionRepository
@@ -8,8 +12,11 @@ import com.taxiplatform.application.ports.RideEventsPublisher
 import com.taxiplatform.application.ports.RideRepository
 import com.taxiplatform.application.ports.UserRepository
 import com.taxiplatform.domain.driver.DriverProfile
+import com.taxiplatform.domain.driver.DriverStatus
 import com.taxiplatform.domain.geo.GeoPoint
 import com.taxiplatform.domain.promo.PromoRedemption
+import com.taxiplatform.domain.ride.PaymentMethod
+import com.taxiplatform.domain.ride.PaymentStatus
 import com.taxiplatform.domain.ride.Ride
 import com.taxiplatform.domain.ride.RideStatus
 import com.taxiplatform.domain.ride.RideTariff
@@ -23,12 +30,17 @@ data class RequestRideCommand(
 	val passengerId: UUID,
 	val pickup: GeoPoint,
 	val dropoff: GeoPoint,
+	val pickupLabel: String? = null,
+	val dropoffLabel: String? = null,
 	/** When set (and in the future), the ride is booked for later instead of dispatched now. */
 	val scheduledAt: Instant? = null,
 	val tariff: RideTariff = RideTariff.ECONOMY,
-	/** Client-estimated fare (before any promo discount) — the backend doesn't compute routes/fares itself. */
+	/** Route distance from the client's own routing (OSRM) — the backend has no routing engine. */
+	val km: Double? = null,
+	/** Fallback fare when [km] isn't supplied; ignored otherwise — the backend prices from [km] when it can. */
 	val fare: Int? = null,
 	val promoCode: String? = null,
+	val paymentMethod: PaymentMethod = PaymentMethod.CASH,
 )
 
 @Service
@@ -37,26 +49,32 @@ class RequestRideUseCase(
 	private val dispatchService: DispatchService,
 	private val promoCodeRepository: PromoCodeRepository,
 	private val promoRedemptionRepository: PromoRedemptionRepository,
+	private val pricingService: PricingService,
+	private val paymentPort: PaymentPort,
 ) {
 	@Transactional
 	fun execute(command: RequestRideCommand): Ride {
 		val now = Instant.now()
 		val scheduleForLater = command.scheduledAt != null && command.scheduledAt.isAfter(now)
 
-		var finalFare = command.fare
+		// The backend owns the fare *formula* (tariff + surge); it just can't independently
+		// verify `km` itself since it has no routing engine of its own.
+		val quote = command.km?.let { pricingService.quote(it, command.tariff, now) }
+		val surgeMultiplier = quote?.surgeMultiplier ?: 1.0
+		var finalFare = quote?.finalFare ?: command.fare
 		var discountApplied: Int? = null
 		var redeemedPromoId: UUID? = null
 		var redeemedPromoCode: String? = null
 
-		if (command.promoCode != null && command.fare != null) {
+		if (command.promoCode != null && finalFare != null) {
 			val promo = promoCodeRepository.findByCode(command.promoCode.trim().uppercase())
 				?: throw IllegalArgumentException("Promo code is invalid or expired")
 			if (!promo.isUsable(now)) throw IllegalArgumentException("Promo code is invalid or expired")
 			if (promoRedemptionRepository.existsByPromoIdAndUserId(promo.id, command.passengerId)) {
 				throw IllegalArgumentException("Promo code was already used")
 			}
-			val discount = promo.discountFor(command.fare)
-			finalFare = command.fare - discount
+			val discount = promo.discountFor(finalFare)
+			finalFare -= discount
 			discountApplied = discount
 			redeemedPromoId = promo.id
 			redeemedPromoCode = promo.code
@@ -70,6 +88,8 @@ class RequestRideUseCase(
 				driverId = null,
 				pickup = command.pickup,
 				dropoff = command.dropoff,
+				pickupLabel = command.pickupLabel,
+				dropoffLabel = command.dropoffLabel,
 				status = if (scheduleForLater) RideStatus.SCHEDULED else RideStatus.REQUESTED,
 				requestedAt = now,
 				scheduledAt = if (scheduleForLater) command.scheduledAt else null,
@@ -83,6 +103,8 @@ class RequestRideUseCase(
 				fare = finalFare,
 				promoCode = redeemedPromoCode,
 				discountApplied = discountApplied,
+				surgeMultiplier = surgeMultiplier,
+				paymentMethod = command.paymentMethod,
 			),
 		)
 
@@ -98,8 +120,15 @@ class RequestRideUseCase(
 			)
 		}
 
+		// No gateway to call yet — a CARD order is simply marked PENDING for manual admin reconciliation.
+		val paidRide = if (command.paymentMethod == PaymentMethod.CARD) {
+			rideRepository.save(ride.copy(paymentStatus = paymentPort.initiate(ride)))
+		} else {
+			ride
+		}
+
 		// A scheduled ride waits for OfferTimeoutScheduler's sibling sweeper; dispatch only immediate ones.
-		return if (scheduleForLater) ride else dispatchService.startDispatch(ride)
+		return if (scheduleForLater) paidRide else dispatchService.startDispatch(paidRide)
 	}
 }
 
@@ -108,6 +137,8 @@ data class RideDetails(
 	val ride: Ride,
 	val driverUser: User?,
 	val driverProfile: DriverProfile?,
+	/** What cancelling *right now* would cost — computed on read, not persisted. Null once the ride is terminal. */
+	val estimatedCancellationFee: Int? = null,
 )
 
 @Service
@@ -115,6 +146,7 @@ class GetRideUseCase(
 	private val rideRepository: RideRepository,
 	private val userRepository: UserRepository,
 	private val driverProfileRepository: DriverProfileRepository,
+	private val cancellationFeePolicy: CancellationFeePolicy,
 ) {
 	fun execute(rideId: UUID): RideDetails {
 		val ride = rideRepository.findById(rideId) ?: throw RideNotFoundException(rideId)
@@ -123,14 +155,25 @@ class GetRideUseCase(
 			ride = ride,
 			driverUser = driverId?.let { userRepository.findById(it) },
 			driverProfile = driverId?.let { driverProfileRepository.findByUserId(it) },
+			estimatedCancellationFee = cancellationFeePolicy.feeFor(ride),
 		)
 	}
+}
+
+/** The authenticated passenger's own ride history, newest first. */
+@Service
+class ListMyRidesUseCase(
+	private val rideRepository: RideRepository,
+) {
+	fun execute(passengerId: UUID, limit: Int): List<Ride> =
+		rideRepository.findByPassengerId(passengerId, limit.coerceIn(1, 100))
 }
 
 @Service
 class CancelRideUseCase(
 	private val rideRepository: RideRepository,
 	private val rideEventsPublisher: RideEventsPublisher,
+	private val cancellationFeePolicy: CancellationFeePolicy,
 ) {
 	@Transactional
 	fun execute(rideId: UUID, requestedBy: UUID, reason: String?): Ride {
@@ -141,8 +184,15 @@ class CancelRideUseCase(
 		if (ride.status in TERMINAL_STATUSES) {
 			throw InvalidRideStateException("Ride $rideId is already in terminal status ${ride.status}")
 		}
+		// Only the passenger backing out late is charged — a driver-initiated cancellation isn't the rider's fault.
+		val fee = if (requestedBy == ride.passengerId) cancellationFeePolicy.feeFor(ride) else null
 		val updated = rideRepository.save(
-			ride.copy(status = RideStatus.CANCELLED, cancelledAt = Instant.now(), cancelledReason = reason),
+			ride.copy(
+				status = RideStatus.CANCELLED,
+				cancelledAt = Instant.now(),
+				cancelledReason = reason,
+				cancellationFee = fee,
+			),
 		)
 		rideEventsPublisher.rideStatusChanged(updated)
 		return updated
@@ -150,6 +200,78 @@ class CancelRideUseCase(
 
 	companion object {
 		private val TERMINAL_STATUSES = setOf(RideStatus.COMPLETED, RideStatus.CANCELLED, RideStatus.NO_DRIVERS_FOUND)
+	}
+}
+
+/** ADMIN/OPERATOR-only — cancels any active ride regardless of who requested it, with no fee
+ * (unlike [CancelRideUseCase], which only lets the passenger or assigned driver cancel). */
+@Service
+class AdminForceCancelRideUseCase(
+	private val rideRepository: RideRepository,
+	private val rideEventsPublisher: RideEventsPublisher,
+) {
+	@Transactional
+	fun execute(rideId: UUID, reason: String?): Ride {
+		val ride = rideRepository.findById(rideId) ?: throw RideNotFoundException(rideId)
+		if (ride.status in TERMINAL_STATUSES) {
+			throw InvalidRideStateException("Ride $rideId is already in terminal status ${ride.status}")
+		}
+		val updated = rideRepository.save(
+			ride.copy(status = RideStatus.CANCELLED, cancelledAt = Instant.now(), cancelledReason = reason, cancellationFee = null),
+		)
+		rideEventsPublisher.rideStatusChanged(updated)
+		return updated
+	}
+
+	private companion object {
+		val TERMINAL_STATUSES = setOf(RideStatus.COMPLETED, RideStatus.CANCELLED, RideStatus.NO_DRIVERS_FOUND)
+	}
+}
+
+/** ADMIN/OPERATOR-only — manually assigns a ride to a specific online driver, or (when
+ * [newDriverId] is omitted) unassigns the current driver and lets [DispatchService] redispatch
+ * to the next-nearest candidate. Either way, the previously-assigned driver (if any) is freed
+ * back to ONLINE so they can be offered other rides. */
+@Service
+class AdminReassignRideUseCase(
+	private val rideRepository: RideRepository,
+	private val driverProfileRepository: DriverProfileRepository,
+	private val driverGeoIndex: DriverGeoIndex,
+	private val dispatchService: DispatchService,
+	private val rideEventsPublisher: RideEventsPublisher,
+) {
+	@Transactional
+	fun execute(rideId: UUID, newDriverId: UUID?): Ride {
+		val ride = rideRepository.findById(rideId) ?: throw RideNotFoundException(rideId)
+		if (ride.status in TERMINAL_STATUSES) {
+			throw InvalidRideStateException("Ride $rideId is already in terminal status ${ride.status}")
+		}
+
+		ride.driverId?.let { freeDriver(it) }
+
+		if (newDriverId == null) {
+			val cleared = rideRepository.save(ride.copy(driverId = null, status = RideStatus.SEARCHING))
+			return dispatchService.startDispatch(cleared)
+		}
+
+		val targetProfile = driverProfileRepository.findByUserId(newDriverId) ?: throw DriverProfileNotFoundException(newDriverId)
+		if (targetProfile.status != DriverStatus.ONLINE) {
+			throw InvalidRideStateException("Driver $newDriverId is not online")
+		}
+		val assigned = rideRepository.save(ride.copy(driverId = newDriverId, status = RideStatus.ACCEPTED, acceptedAt = Instant.now()))
+		driverProfileRepository.save(targetProfile.copy(status = DriverStatus.BUSY, updatedAt = Instant.now()))
+		driverGeoIndex.removeDriver(newDriverId)
+		rideEventsPublisher.rideStatusChanged(assigned)
+		return assigned
+	}
+
+	private fun freeDriver(driverId: UUID) {
+		val profile = driverProfileRepository.findByUserId(driverId) ?: return
+		driverProfileRepository.save(profile.copy(status = DriverStatus.ONLINE, updatedAt = Instant.now()))
+	}
+
+	private companion object {
+		val TERMINAL_STATUSES = setOf(RideStatus.COMPLETED, RideStatus.CANCELLED, RideStatus.NO_DRIVERS_FOUND)
 	}
 }
 
