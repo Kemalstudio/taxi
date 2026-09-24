@@ -10,6 +10,13 @@ enum class DriverStatus {
 	BUSY,
 }
 
+/** Ops review of a driver's license/vehicle documents — gates whether they can go online. */
+enum class VerificationStatus {
+	PENDING,
+	APPROVED,
+	REJECTED,
+}
+
 data class DriverProfile(
 	val userId: UUID,
 	val status: DriverStatus,
@@ -18,4 +25,8 @@ data class DriverProfile(
 	val plateNumber: String?,
 	val rating: BigDecimal,
 	val updatedAt: Instant,
+	val verificationStatus: VerificationStatus = VerificationStatus.PENDING,
+	val rejectionReason: String? = null,
+	val licenseDocPath: String? = null,
+	val vehicleDocPath: String? = null,
 )
