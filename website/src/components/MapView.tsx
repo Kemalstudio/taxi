@@ -1,32 +1,19 @@
 import { useEffect, useRef } from "react";
-import maplibregl, { type StyleSpecification, type GeoJSONSource } from "maplibre-gl";
+import maplibregl, { type GeoJSONSource } from "maplibre-gl";
 import type { GeoPoint, RouteResult } from "../types";
 import { bearing, distanceMeters, unwrapBearing } from "../lib/geo";
+import { useTheme } from "../theme";
+import { asgabatStyle, CITY_BOUNDS, CITY_CENTER } from "../lib/mapStyle";
 
 /** Below this, a "moved" reading is just GPS jitter — don't spin the car icon in place. */
 const MIN_HEADING_DISTANCE_M = 3;
 
-const ASHGABAT: [number, number] = [58.38, 37.95]; // [lng, lat]
-
-/** Raster OSM style — no API key; MapLibre still tilts (pitch) for the 2.5D effect. */
-const OSM_STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    osm: {
-      type: "raster",
-      tiles: [
-        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      ],
-      tileSize: 256,
-      minzoom: 0,
-      maxzoom: 18,
-      attribution: "© OpenStreetMap",
-    },
-  },
-  layers: [{ id: "osm", type: "raster", source: "osm" }],
-};
+/** How far outside the offline tileset panning is allowed before it hits blank space. */
+const PAN_MARGIN = 0.04;
+const MAX_BOUNDS: [[number, number], [number, number]] = [
+  [CITY_BOUNDS[0] - PAN_MARGIN, CITY_BOUNDS[1] - PAN_MARGIN],
+  [CITY_BOUNDS[2] + PAN_MARGIN, CITY_BOUNDS[3] + PAN_MARGIN],
+];
 
 function el(className: string): HTMLDivElement {
   const d = document.createElement("div");
@@ -75,31 +62,29 @@ export function MapView({ mapRef, from, to, stops, route, me, driver, autoFit = 
   const driverHeading = useRef(0);
   const hasFittedRoute = useRef(false);
   const loaded = useRef(false);
+  const routeData = useRef<GeoJSON.Feature>(emptyLine());
+  const { theme } = useTheme();
+  const styledTheme = useRef(theme);
 
   // init once
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: OSM_STYLE,
-      center: ASHGABAT,
+      style: asgabatStyle(styledTheme.current),
+      center: CITY_CENTER,
       zoom: 12.5,
       pitch: 0,
-      maxZoom: 18,
-      maxPitch: 60,
+      // z14 tiles overzoom cleanly, so we can keep zooming well past the tileset's own maxzoom
+      maxZoom: 19.5,
+      maxPitch: 70,
+      maxBounds: MAX_BOUNDS,
       fadeDuration: 0,
       attributionControl: { compact: true },
     });
     map.on("load", () => {
       loaded.current = true;
-      map.addSource("route", { type: "geojson", data: emptyLine() });
-      map.addLayer({
-        id: "route",
-        type: "line",
-        source: "route",
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#1DB268", "line-width": 6, "line-opacity": 0.95 },
-      });
+      addRouteLayer(map, routeData.current);
     });
     mapRef.current = map;
     return () => {
@@ -108,6 +93,16 @@ export function MapView({ mapRef, from, to, stops, route, me, driver, autoFit = 
       loaded.current = false;
     };
   }, [mapRef]);
+
+  // theme switch: swap the whole vector style (the old raster map faked dark mode with a
+  // CSS filter — a vector style can just use dark colors) and put the route layer back.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || styledTheme.current === theme) return;
+    styledTheme.current = theme;
+    map.setStyle(asgabatStyle(theme));
+    map.once("styledata", () => addRouteLayer(map, routeData.current));
+  }, [mapRef, theme]);
 
   // markers
   useEffect(() => {
@@ -168,14 +163,16 @@ export function MapView({ mapRef, from, to, stops, route, me, driver, autoFit = 
       const src = map.getSource("route") as GeoJSONSource | undefined;
       if (!src) return;
       if (!route || route.coords.length < 2) {
-        src.setData(emptyLine());
+        routeData.current = emptyLine();
+        src.setData(routeData.current);
         return;
       }
-      src.setData({
+      routeData.current = {
         type: "Feature",
         properties: {},
         geometry: { type: "LineString", coordinates: route.coords.map((c) => [c[1], c[0]]) },
-      });
+      };
+      src.setData(routeData.current);
       if (!autoFit && hasFittedRoute.current) return;
       hasFittedRoute.current = true;
       const lngs = route.coords.map((c) => c[1]);
@@ -197,4 +194,18 @@ export function MapView({ mapRef, from, to, stops, route, me, driver, autoFit = 
 
 function emptyLine(): GeoJSON.Feature {
   return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } };
+}
+
+/** (Re-)attach the route line. Called on first load and again after a style swap, which
+ *  drops every source and layer the style didn't declare. */
+function addRouteLayer(map: maplibregl.Map, data: GeoJSON.Feature): void {
+  if (map.getLayer("route")) return;
+  if (!map.getSource("route")) map.addSource("route", { type: "geojson", data });
+  map.addLayer({
+    id: "route",
+    type: "line",
+    source: "route",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#1DB268", "line-width": 6, "line-opacity": 0.95 },
+  });
 }
