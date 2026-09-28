@@ -14,6 +14,7 @@ import com.taxiplatform.domain.geo.GeoPoint
 import com.taxiplatform.domain.ride.Ride
 import com.taxiplatform.domain.ride.RideMessage
 import com.taxiplatform.domain.ride.SosIncident
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -21,6 +22,7 @@ import java.util.UUID
 @Component
 class SimpMessagingRideEventsPublisher(
 	private val messagingTemplate: SimpMessagingTemplate,
+	@Value("\${taxi.dispatch.offer-timeout-seconds}") private val offerTimeoutSeconds: Long,
 ) : RideEventsPublisher {
 
 	override fun rideOffered(driverId: UUID, ride: Ride) {
@@ -30,6 +32,12 @@ class SimpMessagingRideEventsPublisher(
 				rideId = ride.id,
 				pickup = GeoPointDto(ride.pickup.lat, ride.pickup.lng),
 				dropoff = GeoPointDto(ride.dropoff.lat, ride.dropoff.lng),
+				pickupLabel = ride.pickupLabel,
+				dropoffLabel = ride.dropoffLabel,
+				fare = ride.fare,
+				tariff = ride.tariff.name,
+				paymentMethod = ride.paymentMethod.name,
+				expiresInSeconds = offerTimeoutSeconds,
 			),
 		)
 	}
