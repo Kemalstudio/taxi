@@ -9,6 +9,15 @@ data class RideOfferMessage(
 	val rideId: UUID,
 	val pickup: GeoPointDto,
 	val dropoff: GeoPointDto,
+	/** Everything the driver needs to decide on the offer without a second round-trip — mirrors
+	 *  what Yandex Go / Uber push into the incoming-order card. */
+	val pickupLabel: String?,
+	val dropoffLabel: String?,
+	val fare: Int?,
+	val tariff: String,
+	val paymentMethod: String,
+	/** Seconds the driver has to accept before dispatch auto-advances to the next-nearest driver. */
+	val expiresInSeconds: Long,
 )
 
 data class RideStatusMessage(
