@@ -39,8 +39,7 @@ body { font-family: var(--font); color: var(--ink); background: var(--page); -we
 #map { position: fixed; inset: 0; z-index: 1; }
 .maplibregl-map { font-family: var(--font); background: #e6e9ea; }
 .maplibregl-ctrl-attrib { font-size: 10px; }
-/* dark theme: tint the raster canvas */
-:root[data-theme="dark"] .maplibregl-canvas { filter: brightness(0.78) invert(0.93) hue-rotate(180deg) contrast(0.9) saturate(0.55); }
+/* dark theme: the vector style ships its own dark palette, so only the backdrop needs tinting */
 :root[data-theme="dark"] .maplibregl-map { background: #0c1017; }
 :root[data-theme="dark"] .maplibregl-ctrl-attrib { filter: invert(0.9) hue-rotate(180deg); }
 
