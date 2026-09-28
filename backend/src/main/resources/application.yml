@@ -33,7 +33,7 @@ taxi:
     expiration-minutes: 60
   dispatch:
     search-radius-km: 5.0
-    offer-timeout-seconds: 15
+    offer-timeout-seconds: 20
     offer-sweep-interval-ms: 2000
     scheduled-sweep-interval-ms: 15000
   pricing:
